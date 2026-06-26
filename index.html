@@ -390,6 +390,10 @@
         if (data[i].score <= score) lower = data[i];
         if (upper === null && data[i].score >= score) upper = data[i];
       }
+      // 越界处理：分数高于数据范围，用最高数据点
+      if (lower && !upper) return lower[rankField];
+      // 越界处理：分数低于数据范围，用最低数据点
+      if (!lower && upper) return upper[rankField];
       if (!lower || !upper) return null;
       if (lower.score === upper.score) return lower[rankField];
       if (lower[rankField] === null || upper[rankField] === null) return null;
