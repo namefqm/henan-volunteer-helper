@@ -1,0 +1,1642 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>匹配结果 - 河南美术志愿</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #f5f6fa;
+      padding-bottom: 80px;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    
+    .header h1 {
+      font-size: 18px;
+      margin-bottom: 5px;
+      display: inline;
+    }
+    
+    .header .score-info {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    /* 专科模式标签 */
+    .mode-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.25);
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+      padding: 2px 14px;
+      border-radius: 6px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    
+    .btn-back {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      padding: 8px 15px;
+      border-radius: 20px;
+      font-size: 14px;
+      cursor: pointer;
+      margin-bottom: 10px;
+      display: inline-block;
+    }
+    
+    .filter-btn {
+      position: absolute;
+      right: 90px;
+      top: 20px;
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      padding: 8px 15px;
+      border-radius: 20px;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* 搜索院校按钮（右侧，筛选按钮左边） */
+    .search-btn {
+      position: absolute;
+      right: 20px;
+      top: 20px;
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      padding: 8px 15px;
+      border-radius: 20px;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: background 0.2s;
+    }
+    .search-btn:hover { background: rgba(255,255,255,0.4); }
+    .search-btn:active { background: rgba(255,255,255,0.5); }
+    
+    .filter-btn.active {
+      background: rgba(255,255,255,0.4);
+    }
+    
+    .filter-badge {
+      display: inline-block;
+      background: #ff4444;
+      color: white;
+      border-radius: 50%;
+      width: 18px;
+      height: 18px;
+      font-size: 12px;
+      line-height: 18px;
+      text-align: center;
+      margin-left: 5px;
+    }
+    
+    .filter-panel {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: white;
+      z-index: 1001;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    
+    .filter-panel.active {
+      display: block;
+    }
+    
+    .filter-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #667eea;
+    }
+    
+    .filter-header h2 {
+      font-size: 18px;
+      color: #333;
+    }
+    
+    .filter-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #999;
+    }
+    
+    .filter-section {
+      margin-bottom: 25px;
+    }
+    
+    .filter-section h3 {
+      font-size: 16px;
+      color: #333;
+      margin-bottom: 12px;
+    }
+    
+    .filter-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    
+    .filter-option {
+      padding: 8px 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 20px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s;
+      background: white;
+    }
+    
+    .filter-option:hover {
+      border-color: #667eea;
+      color: #667eea;
+    }
+    
+    .filter-option.selected {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+    
+    .filter-actions {
+      display: flex;
+      gap: 15px;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #e0e0e0;
+    }
+    
+    .filter-actions button {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    
+    .btn-apply-filter {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .btn-reset-filter {
+      background: #f0f0f0;
+      color: #333;
+    }
+    
+    .tabs {
+      display: flex;
+      background: white;
+      border-bottom: 1px solid #e0e0e0;
+      position: sticky;
+      top: var(--header-h, 76px);
+      z-index: 99;
+    }
+    
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 15px 5px;
+      font-size: 14px;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+    }
+    
+    .tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+      font-weight: bold;
+    }
+    
+    .tab-count {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      border-radius: 10px;
+      padding: 2px 8px;
+      font-size: 12px;
+      margin-left: 5px;
+    }
+    
+    .tab-content {
+      display: none;
+      padding: 15px;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .school-card {
+      background: white;
+      border-radius: 15px;
+      padding: 20px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    
+    .school-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    }
+    
+    .school-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+    
+    .school-name {
+      font-size: 16px;
+      font-weight: bold;
+      color: #333;
+      flex: 1;
+    }
+    
+    .school-tag {
+      padding: 4px 10px;
+      border-radius: 15px;
+      font-size: 12px;
+      font-weight: bold;
+      white-space: nowrap;
+      margin-left: 10px;
+    }
+    
+    .tag-reach {
+      background: #ffe0e0;
+      color: #d32f2f;
+    }
+    
+    .tag-match {
+      background: #fff3e0;
+      color: #f57c00;
+    }
+    
+    .tag-safe {
+      background: #e8f5e9;
+      color: #388e3c;
+    }
+    
+    .school-info {
+      font-size: 13px;
+      color: #666;
+      line-height: 1.8;
+    }
+    
+    .school-info span {
+      margin-right: 15px;
+    }
+    
+    .score-compare {
+      margin-top: 10px;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    
+    .score-compare .user-score {
+      color: #667eea;
+      font-weight: bold;
+    }
+    
+    .score-compare .school-score {
+      color: #333;
+    }
+    
+    .score-compare .diff {
+      font-weight: bold;
+    }
+    
+    .diff-positive {
+      color: #4caf50;
+    }
+    
+    .diff-negative {
+      color: #f44336;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+    }
+    
+    .empty-state-icon {
+      font-size: 60px;
+      margin-bottom: 20px;
+    }
+    
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      padding: 15px 20px;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+      display: flex;
+      gap: 15px;
+      z-index: 1000;
+    }
+    
+    .bottom-bar button {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    
+    .btn-volunteer {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .btn-recalculate {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .btn-add-volunteer {
+      margin-top: 10px;
+      padding: 8px 15px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+      background: #667eea;
+      color: white;
+      width: 100%;
+    }
+    
+    .btn-add-volunteer:hover {
+      background: #5568d3;
+    }
+    
+    .btn-add-volunteer.added {
+      background: #f0f0f0;
+      color: #666;
+    }
+    
+    .btn-add-volunteer.added:hover {
+      background: #e0e0e0;
+    }
+    
+    .btn-add-volunteer:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    /* 加载更多按钮 */
+    .load-more-btn {
+      display: block;
+      width: 90%;
+      margin: 15px auto;
+      padding: 12px;
+      background: #f0f0f0;
+      color: #333;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    .load-more-btn:hover {
+      background: #e0e0e0;
+    }
+
+    /* ========== 搜索院校弹窗 ========== */
+    .search-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: white;
+      z-index: 2000;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .search-modal.active { display: block; }
+
+    .search-modal-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 16px 20px;
+    }
+    .search-modal-header .search-close {
+      background: rgba(255,255,255,0.2);
+      border: none; color: white;
+      padding: 8px 15px;
+      border-radius: 20px;
+      font-size: 14px;
+      cursor: pointer;
+      float: right;
+    }
+    .search-modal-header h2 {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    .search-input-wrap {
+      display: flex;
+      gap: 10px;
+    }
+    .search-input-wrap input {
+      flex: 1;
+      padding: 10px 14px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      outline: none;
+      background: rgba(255,255,255,0.9);
+    }
+    .search-input-wrap input:focus {
+      background: white;
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.5);
+    }
+    .search-input-wrap .search-clear {
+      background: rgba(255,255,255,0.2);
+      border: none; color: white;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .search-input-wrap .search-clear:hover { background: rgba(255,255,255,0.35); }
+
+    .search-results {
+      padding: 16px 20px;
+    }
+    .search-empty {
+      text-align: center;
+      padding: 40px 20px;
+      color: #999;
+      font-size: 14px;
+    }
+    .search-empty .icon { font-size: 48px; margin-bottom: 12px; }
+
+    /* 搜索院校卡片 */
+    .search-school-card {
+      background: white;
+      border: 1px solid #e8e8e8;
+      border-radius: 14px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+    }
+    .search-school-header {
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .search-school-name {
+      font-size: 16px;
+      font-weight: bold;
+      color: #333;
+    }
+    .search-school-meta {
+      font-size: 13px;
+      color: #888;
+      margin-top: 4px;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    /* 搜索结果的录取专业表（适配移动端） */
+    .search-admission-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 0 4px 8px 4px;
+      margin: 0 -4px;
+    }
+    .search-admission-table {
+      width: 100%;
+      min-width: 680px;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    @media (max-width: 480px) {
+      .search-admission-table { font-size: 11px; min-width: 620px; }
+      .search-admission-table th,
+      .search-admission-table td { padding: 6px 3px; }
+    }
+    .search-admission-table th {
+      text-align: center;
+      padding: 7px 4px;
+      color: #fff;
+      font-weight: 600;
+      background: #667eea;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+    .search-admission-table td {
+      padding: 7px 4px;
+      color: #333;
+      border-bottom: 1px solid #eee;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .search-admission-table tr:nth-child(even) td { background: #fafbfe; }
+    .search-admission-table tr:hover td { background: #eef1ff; }
+    .search-admission-table .major-cell {
+      cursor: pointer;
+      color: #667eea;
+      font-weight: 500;
+      text-align: left;
+      padding-left: 8px;
+      min-width: 90px;
+    }
+    .search-admission-table .major-cell:hover {
+      text-decoration: underline;
+      background: #ede7ff;
+    }
+    .search-admission-table .num { text-align: center; font-family: "SF Mono", Monaco, Consolas, monospace; padding-right: 4px; }
+    .search-admission-table .diff-pos { color: #4caf50; font-weight: 600; }
+    .search-admission-table .diff-neg { color: #f44336; font-weight: 600; }
+    .search-admission-table .formula-cell { font-size: 11px; color: #666; }
+    .search-admission-table .num { text-align: center; font-family: "SF Mono", Monaco, Consolas, monospace; padding-right: 4px; }
+
+    /* 署名 */
+    .crafted-by {
+      text-align: center;
+      padding: 18px 0 24px;
+      font-size: 12px;
+      color: #bbb;
+      letter-spacing: 1px;
+      user-select: none;
+    }
+    .crafted-by span {
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <button class="btn-back" onclick="goBack()">← 重新输入</button>
+    <button class="search-btn" onclick="openSearchModal()">🔍 搜索</button>
+    <h1 id="pageTitle">🎯 匹配结果</h1>
+    <div class="mode-badge" id="modeBadge">本科</div>
+    <div class="score-info" id="scoreInfo"></div>
+  </div>
+  
+  <!-- 筛选面板 -->
+  <div class="filter-panel" id="filterPanel">
+    <div class="filter-header">
+      <h2>🔍 筛选条件</h2>
+      <button class="filter-close" onclick="toggleFilter()">×</button>
+    </div>
+    
+    <div class="filter-section">
+      <h3>📍 省份</h3>
+      <div class="filter-options" id="provinceFilters"></div>
+    </div>
+    
+    <div class="filter-section">
+      <h3>🏫 办学性质</h3>
+      <div class="filter-options" id="natureFilters"></div>
+    </div>
+    
+    <div class="filter-section">
+      <h3>🎨 专业</h3>
+      <div class="filter-options" id="majorFilters"></div>
+    </div>
+    
+    <div class="filter-section">
+      <h3>📅 录取年份</h3>
+      <div class="filter-options" id="yearFilters"></div>
+    </div>
+
+    <div class="filter-section">
+      <h3>🧮 综合分计算规则</h3>
+      <div class="filter-options" id="ruleFilters"></div>
+    </div>
+    
+    <div class="filter-actions">
+      <button class="btn-reset-filter" onclick="resetFilters()">重置</button>
+      <button class="btn-apply-filter" onclick="applyFilters()">确定</button>
+    </div>
+  </div>
+
+  <!-- 搜索院校弹窗 -->
+  <div class="search-modal" id="searchModal">
+    <div class="search-modal-header">
+      <button class="search-close" onclick="closeSearchModal()">×</button>
+      <h2>🔍 搜索院校</h2>
+      <div class="search-input-wrap">
+        <input type="text" id="searchInput" placeholder="输入院校名称..." autocomplete="off">
+        <button class="search-clear" onclick="clearSearch()">清空</button>
+      </div>
+    </div>
+    <div class="search-results" id="searchResults">
+      <div class="search-empty">
+        <div class="icon">🔍</div>
+        <p>输入院校名称开始搜索</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="tabs">
+    <div class="tab active" data-tab="reach">
+      冲 <span class="tab-count" id="reachCount">0</span>
+    </div>
+    <div class="tab" data-tab="match">
+      稳 <span class="tab-count" id="matchCount">0</span>
+    </div>
+    <div class="tab" data-tab="safe">
+      保 <span class="tab-count" id="safeCount">0</span>
+    </div>
+  </div>
+  
+  <div class="tab-content active" id="reachContent"></div>
+  <div class="tab-content" id="matchContent"></div>
+  <div class="tab-content" id="safeContent"></div>
+  
+  <div class="bottom-bar">
+    <button class="btn-recalculate" onclick="toggleFilter()">筛选</button>
+    <button class="btn-volunteer" onclick="goToVolunteer()">我的志愿 <span id="volunteerCount">(0)</span></button>
+  </div>
+  
+  <script src="static/data.js?v=20250612"></script>
+  <script src="static/major_groups.js"></script>
+  <script>
+    // 动态设置 tabs 的 top 值（根据 header 实际高度）
+    function updateTabsTop() {
+      var header = document.querySelector('.header');
+      if (header) {
+        document.documentElement.style.setProperty('--header-h', header.offsetHeight + 'px');
+      }
+    }
+    window.addEventListener('load', updateTabsTop);
+    window.addEventListener('resize', updateTabsTop);
+
+    // 全局变量（必须在全局作用域，供 DOMContentLoaded 内外的函数共同访问）
+    let allResults = { reach: [], match: [], safe: [] };
+    let filteredResults = { reach: [], match: [], safe: [] };
+    let currentMode = 'bk';  // 'bk' = 本科, 'zk' = 专科
+    let activeFilters = {
+      provinces: [],
+      natures: [],
+      majors: [],
+      rules: [],
+      years: []
+    };
+    let currentTab = 'reach';
+    // 懒加载：每个分区已渲染数量
+    const BATCH_SIZE = 50;
+    let renderedCount = { reach: 0, match: 0, safe: 0 };
+
+    // ========== 全局工具函数（必须在 DOMContentLoaded 之前，供全局函数调用）==========
+    
+    // 筛选项持久化
+    const FILTER_STORAGE_KEY = 'resultPageFilterState';
+
+    function saveFilterState() {
+      const state = {
+        activeFilters: activeFilters,
+        currentTab: currentTab
+      };
+      localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function loadFilterState() {
+      try {
+        const raw = localStorage.getItem(FILTER_STORAGE_KEY);
+        if (!raw) return false;
+        const state = JSON.parse(raw);
+        if (state.activeFilters) {
+          activeFilters = state.activeFilters;
+        }
+        if (state.currentTab) {
+          currentTab = state.currentTab;
+        }
+        return true;
+      } catch(e) {
+        return false;
+      }
+    }
+
+    function clearFilterState() {
+      localStorage.removeItem(FILTER_STORAGE_KEY);
+    }
+    
+    // 省份映射表（用于从"湖北武汉"提取"湖北"）
+    const PROVINCE_MAP = {
+      '北京': true, '上海': true, '天津': true, '重庆': true,
+      '河北': true, '山西': true, '辽宁': true, '吉林': true, '黑龙江': true,
+      '江苏': true, '浙江': true, '安徽': true, '福建': true, '江西': true,
+      '山东': true, '河南': true, '湖北': true, '湖南': true, '广东': true,
+      '海南': true, '四川': true, '贵州': true, '云南': true, '陕西': true,
+      '甘肃': true, '青海': true, '台湾': true,
+      '内蒙古': true, '广西': true, '西藏': true, '宁夏': true, '新疆': true,
+      '香港': true, '澳门': true
+    };
+    
+    // 提取省份
+    function extractProvince(provStr) {
+      if (!provStr) return '未知';
+      let trimmed = provStr.trim();
+      for (let prov of Object.keys(PROVINCE_MAP)) {
+        if (trimmed.startsWith(prov)) {
+          return prov;
+        }
+      }
+      return trimmed;
+    }
+    
+    // 清洗专业名称
+    function cleanMajor(majorStr) {
+      if (!majorStr) return '未知';
+      let cleaned = majorStr.replace(/^\(\d+\)/, '');
+      if (cleaned.includes('(中外合作办学)')) {
+        return cleaned;
+      }
+      cleaned = cleaned.replace(/\(.+/, '').trim();
+      return cleaned;
+    }
+    
+    // 获取综合分计算规则名称
+    function getRuleName(cultureRatio, majorRatio) {
+      if (cultureRatio === 100 && majorRatio === 0) return '纯文化分';
+      if (cultureRatio === 80 && majorRatio === 50) return '文八专二';
+      if (cultureRatio === 70 && majorRatio === 75) return '文七专三';
+      if (cultureRatio === 60 && majorRatio === 100) return '文六专四';
+      if (cultureRatio === 50 && majorRatio === 125) return '文五专五';
+      return '其他(culture:' + cultureRatio + ' major:' + majorRatio + ')';
+    }
+
+    // ========== 搜索院校功能 ==========
+    let searchTimer = null;
+    let searchDataCache = null;
+
+    // 获取搜索用的全量院校数据（含本科+专科，去重）
+    function getSearchData() {
+      if (searchDataCache) return searchDataCache;
+      var map = {};
+      // 从 SCHOOL_DATA 和 SCHOOL_DATA_ZX 提取所有学校
+      function collect(ds) {
+        if (!ds) return;
+        ds.forEach(function(s) {
+          var key = s.school_name;
+          if (!map[key]) {
+            map[key] = {
+              school_name: s.school_name,
+              province: s.province || '',
+              level: s.level || ''
+            };
+          }
+        });
+      }
+      collect(SCHOOL_DATA);
+      if (typeof SCHOOL_DATA_ZX !== 'undefined') collect(SCHOOL_DATA_ZX);
+      searchDataCache = Object.values(map).sort(function(a, b) {
+        return a.school_name.localeCompare(b.school_name, 'zh-CN');
+      });
+      return searchDataCache;
+    }
+
+    // 根据学校名和用户科类查找所有招生记录（本科+专科）
+    function findSchoolRecords(schoolName) {
+      // 读取用户科类偏好
+      var userCat = '';
+      try { userCat = (JSON.parse(localStorage.getItem('userScore') || '{}').category) || ''; } catch(e) {}
+
+      // 科类兼容映射
+      function categoryMatches(schoolCat, preferredCat) {
+        if (!preferredCat) return true;
+        if (schoolCat === preferredCat) return true;
+        if (preferredCat === '历史类' && schoolCat === '文科') return true;
+        if (preferredCat === '物理类' && schoolCat === '理科') return true;
+        if (preferredCat === '文科' && schoolCat === '历史类') return true;
+        if (preferredCat === '理科' && schoolCat === '物理类') return true;
+        return false;
+      }
+
+      var results = [];
+      function collect(ds) {
+        if (!ds) return;
+        ds.forEach(function(s) {
+          if (s.school_name === schoolName && categoryMatches(s.category, userCat)) {
+            results.push(s);
+          }
+        });
+      }
+      collect(SCHOOL_DATA);
+      if (typeof SCHOOL_DATA_ZX !== 'undefined') collect(SCHOOL_DATA_ZX);
+      return results;
+    }
+
+    // 打开搜索弹窗
+    function openSearchModal() {
+      document.getElementById('searchModal').classList.add('active');
+      document.getElementById('searchInput').value = '';
+      var userCat = '';
+      try { userCat = (JSON.parse(localStorage.getItem('userScore') || '{}').category) || ''; } catch(e) {}
+      var catLabel = userCat ? '（当前筛选：' + userCat + '）' : '';
+      document.getElementById('searchResults').innerHTML =
+        '<div class="search-empty"><div class="icon">🔍</div><p>输入院校名称开始搜索</p><p style="font-size:12px;color:#bbb;margin-top:4px;">仅显示' + catLabel + '招生数据</p></div>';
+      setTimeout(function() {
+        document.getElementById('searchInput').focus();
+      }, 300);
+    }
+
+    // 关闭搜索弹窗
+    function closeSearchModal() {
+      document.getElementById('searchModal').classList.remove('active');
+      if (searchTimer) { clearTimeout(searchTimer); searchTimer = null; }
+    }
+
+    // 清空搜索
+    function clearSearch() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('searchResults').innerHTML =
+        '<div class="search-empty"><div class="icon">🔍</div><p>输入院校名称开始搜索</p></div>';
+      if (searchTimer) { clearTimeout(searchTimer); searchTimer = null; }
+    }
+
+    // 执行搜索（带防抖）
+    function doSearch() {
+      if (searchTimer) { clearTimeout(searchTimer); }
+      searchTimer = setTimeout(function() {
+        performSearch();
+      }, 200);
+    }
+
+    function performSearch() {
+      var query = document.getElementById('searchInput').value.trim();
+      var container = document.getElementById('searchResults');
+      if (!query) {
+        container.innerHTML = '<div class="search-empty"><div class="icon">🔍</div><p>输入院校名称开始搜索</p></div>';
+        return;
+      }
+
+      var allSchools = getSearchData();
+      var matched = allSchools.filter(function(s) {
+        return s.school_name.indexOf(query) !== -1;
+      });
+
+      if (matched.length === 0) {
+        var catHint = '';
+        try { var uc = (JSON.parse(localStorage.getItem('userScore') || '{}').category) || ''; if (uc) catHint = '（' + uc + '）'; } catch(e) {}
+        container.innerHTML = '<div class="search-empty"><div class="icon">😕</div><p>未找到与「' + escapeHtmlSimple(query) + '」匹配的院校' + catHint + '</p></div>';
+        return;
+      }
+
+      // 限制显示前 20 所学校
+      var display = matched.slice(0, 20);
+      var html = '';
+      display.forEach(function(school) {
+        var records = findSchoolRecords(school.school_name);
+        html += buildSearchSchoolCard(school, records);
+      });
+
+      if (matched.length > 20) {
+        html += '<div style="text-align:center;color:#999;font-size:13px;padding:8px;">共找到 ' + matched.length + ' 所院校，仅显示前 20 所，请精确搜索</div>';
+      }
+
+      container.innerHTML = html;
+    }
+
+    function escapeHtmlSimple(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function buildSearchSchoolCard(school, records) {
+      // 获取用户分数用于计算分差
+      var userScoreData = {};
+      try { userScoreData = JSON.parse(localStorage.getItem('userScore') || '{}'); } catch(e) {}
+      var uCulture = parseFloat(userScoreData.cultureScore);
+      var uMajor = parseFloat(userScoreData.majorScore);
+
+      function calcComposite(cr, mr) {
+        if (isNaN(uCulture) || isNaN(uMajor)) return null;
+        if (cr === 100) return uCulture;
+        return uCulture * (cr / 100) + uMajor * (mr / 100);
+      }
+
+      function getRuleName(cr, mr) {
+        if (cr === 100 && mr === 0) return '纯文化分';
+        if (cr === 80 && mr === 50) return '文八专二';
+        if (cr === 70 && mr === 75) return '文七专三';
+        if (cr === 60 && mr === 100) return '文六专四';
+        if (cr === 50 && mr === 125) return '文五专五';
+        return '其他';
+      }
+
+      var h = '<div class="search-school-card">';
+      // 学校信息头部
+      h += '<div class="search-school-header">';
+      h += '<div class="search-school-name">' + escapeHtmlSimple(school.school_name) + '</div>';
+      h += '<div class="search-school-meta">';
+      h += '<span>📍 ' + escapeHtmlSimple(school.province) + '</span>';
+      h += '<span>🏫 ' + escapeHtmlSimple(school.level) + '</span>';
+      h += '</div></div>';
+
+      // 录取专业表
+      if (records.length > 0) {
+        h += '<div class="search-admission-wrap">';
+        h += '<table class="search-admission-table">';
+        h += '<thead><tr>' +
+          '<th>科类</th><th>年份</th><th>专业</th>' +
+          '<th>计算公式</th>' +
+          '<th class="num">计划</th><th class="num">实际</th>' +
+          '<th class="num">最低分</th>' +
+          '<th class="num">分差</th>' +
+          '</tr></thead><tbody>';
+
+        // 按 年份降序、科类 排序
+        var sorted = records.slice().sort(function(a, b) {
+          if (b.year !== a.year) return b.year - a.year;
+          return (a.category || '').localeCompare(b.category || '', 'zh-CN');
+        });
+
+        sorted.forEach(function(r) {
+          var formula = getRuleName(r.culture_ratio, r.major_ratio);
+          var userComp = calcComposite(r.culture_ratio, r.major_ratio);
+          var diffVal = (userComp != null && r.min_score != null) ? (userComp - r.min_score) : null;
+          var diffHtml = '-';
+          if (diffVal !== null) {
+            var dCls = diffVal >= 0 ? 'diff-pos' : 'diff-neg';
+            var dSign = diffVal >= 0 ? '+' : '';
+            diffHtml = '<span class="' + dCls + '">' + dSign + diffVal.toFixed(1) + '</span>';
+          }
+
+          h += '<tr>';
+          h += '<td>' + escapeHtmlSimple(r.category || '-') + '</td>';
+          h += '<td>' + r.year + '</td>';
+          h += '<td class="major-cell" onclick="searchGoToDetail(\'' + r.school_name.replace(/'/g, "\\'") + '\',\'' + (r.major || '').replace(/'/g, "\\'") + '\',' + r.year + ',\'' + (r.category || '') + '\')">' + escapeHtmlSimple(r.major || '-') + '</td>';
+          h += '<td class="formula-cell">' + formula + '</td>';
+          h += '<td class="num">' + (r.plan_count != null ? r.plan_count : '-') + '</td>';
+          h += '<td class="num">' + (r.actual_count != null ? r.actual_count : '-') + '</td>';
+          h += '<td class="num"><b>' + (r.min_score != null ? r.min_score : '-') + '</b></td>';
+          h += '<td class="num">' + diffHtml + '</td>';
+          h += '</tr>';
+        });
+
+        h += '</tbody></table></div>';
+      }
+
+      h += '</div>';
+      return h;
+    }
+
+    // 从搜索页跳转到详情页
+    function searchGoToDetail(schoolName, major, year, category) {
+      var obj = {
+        school_name: schoolName,
+        major: major,
+        year: year,
+        type: currentTab
+      };
+      if (category) obj.category = category;
+      localStorage.setItem('currentSchool', JSON.stringify(obj));
+      window.location.href = 'detail.html';
+    }
+
+    // ========== 结束搜索院校功能 ==========
+
+    // 等待 DOM 就绪后再执行初始化
+    document.addEventListener('DOMContentLoaded', function() {
+
+    // 加载数据
+    const storedResults = JSON.parse(localStorage.getItem('matchResults') || '{}');
+    const userScore = JSON.parse(localStorage.getItem('userScore') || '{}');
+    currentMode = userScore.mode || 'bk';  // 从 userScore 更新模式
+    
+    // 调试信息
+    console.log('读取到 matchResults:', storedResults);
+    console.log('读取到 userScore:', userScore);
+    console.log('冲:', (storedResults.reach || []).length, '所');
+    console.log('稳:', (storedResults.match || []).length, '所');
+    console.log('保:', (storedResults.safe || []).length, '所');
+    
+    // 初始化数据
+    allResults = {
+      reach: storedResults.reach || [],
+      match: storedResults.match || [],
+      safe: storedResults.safe || []
+    };
+
+    // 尝试恢复筛选项状态
+    const filtersRestored = loadFilterState();
+    if (filtersRestored) {
+      // 恢复：用 allResults 重新计算 filteredResults
+      filteredResults = JSON.parse(JSON.stringify(allResults));
+    } else {
+      filteredResults = JSON.parse(JSON.stringify(allResults));
+    }
+
+    // 显示分数信息
+    if (userScore.cultureScore) {
+      document.getElementById('scoreInfo').textContent = 
+        `你的分数：专业 ${userScore.majorScore} 分，文化 ${userScore.cultureScore} 分（${userScore.category}）`;
+    }
+    
+    // 根据模式更新标题和标签
+    document.getElementById('pageTitle').textContent = '🎯 匹配结果';
+    var modeBadge = document.getElementById('modeBadge');
+    modeBadge.style.display = 'inline-block';
+    modeBadge.textContent = currentMode === 'zk' ? '专科' : '本科';
+
+    // 初始化筛选选项（会根据 activeFilters 恢复选中状态）
+    initFilterOptions();
+
+    // 事件委托：点击院校卡片跳转详情页
+    document.querySelectorAll('.tab-content').forEach(function(content) {
+      content.addEventListener('click', function(e) {
+        const card = e.target.closest('.school-card');
+        if (card) {
+          const d = card.dataset;
+          goToDetail(decodeURIComponent(d.name), decodeURIComponent(d.major), parseInt(d.year), d.type, d.category ? decodeURIComponent(d.category) : '');
+        }
+      });
+    });
+    
+    // 如果恢复了筛选项，重新应用筛选
+    if (filtersRestored) {
+      reapplyFilters();
+    } else {
+      // 更新计数
+      updateCounts();
+      // 渲染列表
+      renderList('reach', filteredResults.reach);
+      renderList('match', filteredResults.match);
+      renderList('safe', filteredResults.safe);
+    }
+    
+    // 更新志愿数量
+    updateVolunteerCount();
+
+    // 搜索输入监听
+    document.getElementById('searchInput').addEventListener('input', doSearch);
+    document.getElementById('searchInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); performSearch(); }
+    });
+
+    // 恢复 addVolunteerType（从志愿单页跳转过来时指定分区）
+    var addType = localStorage.getItem('addVolunteerType');
+    if (addType && ['reach','match','safe'].includes(addType)) {
+      currentTab = addType;
+      localStorage.removeItem('addVolunteerType');
+    }
+
+    // 恢复当前Tab
+    restoreTab();
+    
+    // Tab 切换
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab + 'Content').classList.add('active');
+        
+        // 保存当前Tab
+        currentTab = tab.dataset.tab;
+        saveFilterState();
+      });
+    });
+
+    });
+
+    // ========== 以下为函数定义 ==========
+    // 初始化筛选选项
+    function initFilterOptions() {
+      // 获取所有数据
+      const allData = [...allResults.reach, ...allResults.match, ...allResults.safe];
+      
+      // 学校地址 - 按照中国省份划分，按拼音 A-Z 排序
+      const provinces = [...new Set(allData.map(s => extractProvince(s.province)).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh-CN'));
+      const provinceContainer = document.getElementById('provinceFilters');
+      provinceContainer.innerHTML = '';
+      provinces.forEach(province => {
+        const option = document.createElement('div');
+        option.className = 'filter-option';
+        if (activeFilters.provinces.includes(province)) {
+          option.classList.add('selected');
+        }
+        option.textContent = province;
+        option.onclick = () => toggleFilterOption('provinces', province, option);
+        provinceContainer.appendChild(option);
+      });
+      
+      // 办学性质（按归类后的选项）
+      // 本科：985 / 211 / 双一流 / 公办本科 / 民办本科 / 中外合作办学
+      // 专科：公办专科 / 民办专科
+      const natureOptions = currentMode === 'zk'
+        ? ['公办专科', '民办专科']
+        : ['985', '211', '双一流', '公办本科', '民办本科', '中外合作办学'];
+      const natureContainer = document.getElementById('natureFilters');
+      natureContainer.innerHTML = '';
+      natureOptions.forEach(nature => {
+        const option = document.createElement('div');
+        option.className = 'filter-option';
+        if (activeFilters.natures.includes(nature)) {
+          option.classList.add('selected');
+        }
+        option.textContent = nature;
+        option.onclick = () => toggleFilterOption('natures', nature, option);
+        natureContainer.appendChild(option);
+      });
+      
+      // 专业 - 从数据中提取（通过 getMajorGroup 合并分组，未匹配的保留原名）
+      const majorContainer = document.getElementById('majorFilters');
+      majorContainer.innerHTML = '';
+      // 从 allData 获取所有专业，通过 getMajorGroup 得到分组名，去重排序
+      const majorGroups = [...new Set(allData.map(s => getMajorGroup(s.major)).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh-CN'));
+      majorGroups.forEach(mainMajor => {
+        const option = document.createElement('div');
+        option.className = 'filter-option';
+        if (activeFilters.majors.includes(mainMajor)) {
+          option.classList.add('selected');
+        }
+        option.textContent = mainMajor;
+        // 如果在 MAJOR_GROUPS 中有定义，显示包含的专业变体
+        const variants = MAJOR_GROUPS[mainMajor];
+        if (variants && variants.length > 1) {
+          option.title = '包含: ' + variants.join('、');
+        }
+        option.onclick = () => toggleFilterOption('majors', mainMajor, option);
+        majorContainer.appendChild(option);
+      });
+      
+      // 录取年份筛选
+      const yearOptions = ['2025年', '2024年'];
+      const yearContainer = document.getElementById('yearFilters');
+      yearContainer.innerHTML = '';
+      yearOptions.forEach(yr => {
+        const option = document.createElement('div');
+        option.className = 'filter-option';
+        if (activeFilters.years.includes(yr)) {
+          option.classList.add('selected');
+        }
+        option.textContent = yr;
+        option.onclick = () => toggleFilterOption('years', yr, option);
+        yearContainer.appendChild(option);
+      });
+
+      // 综合分计算规则 - 按照5种类型划分
+      const rules = [...new Set(allData.map(s => getRuleName(s.culture_ratio, s.major_ratio)).filter(Boolean))].sort();
+      const ruleContainer = document.getElementById('ruleFilters');
+      ruleContainer.innerHTML = '';
+      rules.forEach(rule => {
+        const option = document.createElement('div');
+        option.className = 'filter-option';
+        if (activeFilters.rules.includes(rule)) {
+          option.classList.add('selected');
+        }
+        option.textContent = rule;
+        option.onclick = () => toggleFilterOption('rules', rule, option);
+        ruleContainer.appendChild(option);
+      });
+
+      updateFilterBadge();
+    }
+    
+    // 获取办学性质归类（一个院校可能命中多个选项）
+    function getNatureCategories(levelStr) {
+      if (!levelStr) return [];
+      const s = levelStr.trim();
+      // 专科模式：直接匹配公办专科/民办专科
+      if (currentMode === 'zk') {
+        const cats = [];
+        if (s.indexOf('公办') !== -1) cats.push('公办专科');
+        if (s.indexOf('民办') !== -1) cats.push('民办专科');
+        return cats;
+      }
+      const cats = [];
+      if (s.includes('985')) cats.push('985');
+      if (s.includes('211')) cats.push('211');
+      if (s.includes('双一流')) cats.push('双一流');
+      if (s.includes('中外合作办学')) cats.push('中外合作办学');
+      // 公办类
+      if (
+        s.includes('公办') ||
+        s.includes('985') ||
+        s.includes('211') ||
+        s.includes('双一流')
+      ) {
+        // 避免重复推入
+        if (!cats.includes('公办本科')) cats.push('公办本科');
+      }
+      // 民办类
+      if (s.includes('民办') && !s.includes('中外合作办学')) {
+        if (!cats.includes('民办本科')) cats.push('民办本科');
+      }
+      return cats;
+    }
+
+    // 切换筛选选项
+    function toggleFilterOption(filterType, value, element) {
+      const index = activeFilters[filterType].indexOf(value);
+      if (index === -1) {
+        activeFilters[filterType].push(value);
+        element.classList.add('selected');
+      } else {
+        activeFilters[filterType].splice(index, 1);
+        element.classList.remove('selected');
+      }
+      updateFilterBadge();
+    }
+    
+    // 更新筛选徽章（header 筛选按钮已移除，此函数保留以防后续恢复）
+    function updateFilterBadge() {
+      const badge = document.getElementById('filterBadge');
+      if (!badge) return;  // 角标元素可能不存在
+      const totalFilters = Object.values(activeFilters).reduce((sum, arr) => sum + arr.length, 0);
+      if (totalFilters > 0) {
+        badge.textContent = totalFilters;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+    
+    // 应用筛选（点击"确定"时调用，会关闭面板）
+    function applyFilters() {
+      reapplyFilters();
+      toggleFilter();
+    }
+
+    // 重新应用筛选（不操作面板，供恢复状态时使用）
+    function reapplyFilters() {
+      ['reach', 'match', 'safe'].forEach(type => {
+        filteredResults[type] = allResults[type].filter(school => {
+          if (activeFilters.provinces.length > 0) {
+            const schoolProvince = extractProvince(school.province);
+            if (!activeFilters.provinces.includes(schoolProvince)) return false;
+          }
+          if (activeFilters.natures.length > 0) {
+            const cats = getNatureCategories(school.level);
+            const hasMatch = cats.some(cat => activeFilters.natures.includes(cat));
+            if (!hasMatch) return false;
+          }
+          if (activeFilters.majors.length > 0) {
+            const schoolMajorGroup = getMajorGroup(school.major);
+            if (!activeFilters.majors.includes(schoolMajorGroup)) return false;
+          }
+          if (activeFilters.rules.length > 0) {
+            const ruleName = getRuleName(school.culture_ratio, school.major_ratio);
+            if (!activeFilters.rules.includes(ruleName)) return false;
+          }
+          // 年份筛选：将 "2025年" 转为 2025 数字比对
+          if (activeFilters.years.length > 0) {
+            const yearNum = school.year; // 2024 或 2025 数字
+            const yearStr = yearNum + '年'; // 转成 "2025年"
+            if (!activeFilters.years.includes(yearStr)) return false;
+          }
+          return true;
+        });
+      });
+      updateCounts();
+      renderList('reach', filteredResults.reach);
+      renderList('match', filteredResults.match);
+      renderList('safe', filteredResults.safe);
+    }
+    
+    // 重置筛选
+    function resetFilters() {
+      activeFilters = {
+        provinces: [],
+        natures: [],
+        majors: [],
+        rules: [],
+        years: []
+      };
+      
+      // 清除所有选中状态
+      document.querySelectorAll('.filter-option.selected').forEach(el => {
+        el.classList.remove('selected');
+      });
+      
+      updateFilterBadge();
+    }
+    
+    // 切换筛选面板
+    function toggleFilter() {
+      const panel = document.getElementById('filterPanel');
+      panel.classList.toggle('active');
+    }
+    
+    // 恢复当前Tab
+    function restoreTab() {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      const tab = document.querySelector(`.tab[data-tab="${currentTab}"]`);
+      if (tab) {
+        tab.classList.add('active');
+        const content = document.getElementById(currentTab + 'Content');
+        if (content) content.classList.add('active');
+      }
+    }
+    
+    // 更新计数
+    function updateCounts() {
+      document.getElementById('reachCount').textContent = filteredResults.reach.length;
+      document.getElementById('matchCount').textContent = filteredResults.match.length;
+      document.getElementById('safeCount').textContent = filteredResults.safe.length;
+    }
+    
+    // 渲染列表
+    // 生成单个院校卡片 HTML（供分批渲染复用）
+    function generateCardHtml(school, type) {
+      const tags = { reach: '冲刺', match: '稳妥', safe: '保底' };
+      const tagClasses = { reach: 'tag-reach', match: 'tag-match', safe: 'tag-safe' };
+      const diffClass = school.diff >= 0 ? 'diff-positive' : 'diff-negative';
+      const diffText = school.diff >= 0 ? `+${school.diff.toFixed(2)}` : school.diff.toFixed(2);
+      const dataName = encodeURIComponent(school.school_name);
+      const dataMajor = encodeURIComponent(school.major);
+      const dataCategory = encodeURIComponent(school.category || '');
+      return `
+        <div class="school-card"
+             data-name="${dataName}"
+             data-major="${dataMajor}"
+             data-year="${school.year}"
+             data-type="${type}"
+             data-category="${dataCategory}">
+          <div class="school-header">
+            <div class="school-name">${school.school_name} <span style="font-weight: normal; color: #666;">${school.major}（${school.year}年）</span></div>
+            <span class="school-tag ${tagClasses[type]}">${tags[type]}</span>
+          </div>
+          <div class="school-info">
+            <span>📍 ${school.province || '未知'}</span>
+            <span>🏫 ${school.level || '未知'}</span>
+            <span>🧮 ${getRuleName(school.culture_ratio, school.major_ratio)}</span>
+          </div>
+          <div class="score-compare">
+            <span class="user-score">你的综合分：${school.userScore.toFixed(2)}</span> |
+            <span class="school-score">院校最低分：${school.min_score}</span>
+            <br>
+            <span class="diff ${diffClass}">差距：${diffText} 分</span>
+          </div>
+          <button class="btn-add-volunteer" onclick="event.stopPropagation(); var d=this.closest('.school-card').dataset; toggleVolunteer(decodeURIComponent(d.name), decodeURIComponent(d.major), parseInt(d.year), d.type, this)">
+            加入志愿单
+          </button>
+        </div>
+      `;
+    }
+
+    // 渲染列表（分批懒加载：每次只渲染前50所）
+    function renderList(type, list) {
+      const container = document.getElementById(type + 'Content');
+      filteredResults[type] = list;
+      renderedCount[type] = 0;
+      container.innerHTML = '';
+
+      if (list.length === 0) {
+        const icons = { reach: '🎯', match: '✅', safe: '🛡️' };
+        const texts = {
+          reach: '没有找到冲刺院校，可以尝试降低专业/文化分数要求',
+          match: '没有找到稳妥院校，可以尝试调整分数',
+          safe: '没有找到保底院校，建议降低目标'
+        };
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">${icons[type]}</div>
+            <p>${texts[type]}</p>
+          </div>
+        `;
+        return;
+      }
+
+      renderNextBatch(type);
+    }
+
+    // 渲染下一批院校卡片（每次50所）
+    function renderNextBatch(type) {
+      const container = document.getElementById(type + 'Content');
+      const list = filteredResults[type];
+      const start = renderedCount[type];
+      const end = Math.min(start + BATCH_SIZE, list.length);
+
+      if (start >= list.length) return;
+
+      // 移除旧的"加载更多"按钮
+      const oldBtn = container.querySelector('.load-more-btn');
+      if (oldBtn) oldBtn.remove();
+
+      // 渲染当前批次
+      const html = list.slice(start, end).map(school => generateCardHtml(school, type)).join('');
+      container.insertAdjacentHTML('beforeend', html);
+      renderedCount[type] = end;
+
+      // 如果还有更多，添加"加载更多"按钮
+      if (end < list.length) {
+        const btn = document.createElement('button');
+        btn.className = 'load-more-btn';
+        btn.textContent = `加载更多（还剩 ${list.length - end} 所）`;
+        btn.onclick = () => renderNextBatch(type);
+        container.appendChild(btn);
+      }
+
+      updateCardButtons();
+    }
+
+    function goToDetail(schoolName, major, year, type, category) {
+      saveFilterState();
+      var obj = {
+        school_name: schoolName,
+        major: major,
+        year: year,
+        type: type || currentTab
+      };
+      if (category) obj.category = category;
+      localStorage.setItem('currentSchool', JSON.stringify(obj));
+      window.location.href = 'detail.html';
+    }
+    
+    // 返回首页
+    function goBack() {
+      clearFilterState();
+      window.location.href = 'index.html';
+    }
+    
+    // 跳转志愿列表
+    function goToVolunteer() {
+      saveFilterState();
+      window.location.href = 'volunteer.html';
+    }
+    
+    // 更新志愿数量
+    function updateVolunteerCount() {
+      const volunteerList = JSON.parse(localStorage.getItem('volunteerList') || '[]');
+      document.getElementById('volunteerCount').textContent = `(${volunteerList.length})`;
+    }
+
+    // 切换志愿单
+    function toggleVolunteer(schoolName, major, year, type, btn) {
+      console.log('=== toggleVolunteer 被调用 ===');
+      console.log('schoolName:', schoolName);
+      console.log('major:', major);
+      console.log('year:', year);
+      console.log('type:', type);
+      
+      let volunteerList = JSON.parse(localStorage.getItem('volunteerList') || '[]');
+      console.log('当前志愿单:', volunteerList);
+      
+      // 检查是否已在志愿单中
+      const existingIndex = volunteerList.findIndex(function(item) {
+        return item.school_name === schoolName && item.major === major && item.year === year;
+      });
+      
+      if (existingIndex !== -1) {
+        // 已存在，移除
+        volunteerList.splice(existingIndex, 1);
+        localStorage.setItem('volunteerList', JSON.stringify(volunteerList));
+        if (btn) {
+          btn.textContent = '加入志愿单';
+          btn.classList.remove('added');
+        }
+        showToast('已从志愿单移除');
+      } else {
+        // 检查总数限制（64个）
+        // 检查总数限制（从志愿单页读取自定义设置）
+        var totalLimit2 = 64;
+        try { var raw2 = localStorage.getItem('volunteerLimits'); if (raw2) { var p2 = JSON.parse(raw2); totalLimit2 = (p2.reach || 0) + (p2.match || 0) + (p2.safe || 0); } } catch(e) {}
+        if (volunteerList.length >= totalLimit2) {
+          showToast('志愿单已满（最多' + totalLimit2 + '个）');
+          return;
+        }
+        
+        // 检查分区限制
+        const typeCounts = { reach: 0, match: 0, safe: 0 };
+        volunteerList.forEach(function(item) {
+          if (typeCounts[item.type] !== undefined) {
+            typeCounts[item.type]++;
+          }
+        });
+        
+        // 检查分区限制（从志愿单页读取自定义设置）
+        var savedLimits = null;
+        try { var raw = localStorage.getItem('volunteerLimits'); if (raw) savedLimits = JSON.parse(raw); } catch(e) {}
+        var limits = (savedLimits && typeof savedLimits.reach === 'number') ? savedLimits : { reach: 13, match: 32, safe: 19 };
+        if (typeCounts[type] >= limits[type]) {
+          const typeNames = { reach: '冲', match: '稳', safe: '保' };
+          showToast(typeNames[type] + '分区已满（最多' + limits[type] + '个）');
+          return;
+        }
+        
+        // 添加（同时存储省份、最低分等信息，供志愿单页面显示）
+        // 从当前列表中找到该学校的完整信息
+        const allList = [...allResults.reach, ...allResults.match, ...allResults.safe];
+        const schoolInfo = allList.find(s => s.school_name === schoolName && s.major === major && s.year === year);
+        
+        volunteerList.push({
+          school_name: schoolName,
+          major: major,
+          year: year,
+          type: type,
+          province: schoolInfo ? schoolInfo.province : '',
+          level: schoolInfo ? (schoolInfo.level || '') : '',
+          culture_ratio: schoolInfo ? schoolInfo.culture_ratio : null,
+          major_ratio: schoolInfo ? schoolInfo.major_ratio : null,
+          min_score: schoolInfo ? schoolInfo.min_score : '',
+          userScore: schoolInfo ? schoolInfo.userScore : 0,
+          diff: schoolInfo ? schoolInfo.diff : 0,
+          addedAt: new Date().toISOString()
+        });
+        localStorage.setItem('volunteerList', JSON.stringify(volunteerList));
+        console.log('保存后的志愿单:', JSON.parse(localStorage.getItem('volunteerList') || '[]'));
+        console.log('保存成功！');
+        if (btn) {
+          btn.textContent = '已加入';
+          btn.classList.add('added');
+        }
+        showToast('已加入志愿单');
+      }
+      
+      updateVolunteerCount();
+    }
+    
+    // 显示提示
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.textContent = message;
+      toast.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.8);color:white;padding:10px 20px;border-radius:8px;z-index:9999;font-size:14px;';
+      document.body.appendChild(toast);
+      setTimeout(function() {
+        toast.remove();
+      }, 1500);
+    }
+    
+    // 更新卡片按钮状态
+    function updateCardButtons() {
+      const volunteerList = JSON.parse(localStorage.getItem('volunteerList') || '[]');
+      document.querySelectorAll('.school-card').forEach(function(card) {
+        const btn = card.querySelector('.btn-add-volunteer');
+        if (!btn) return;
+
+        const d = card.dataset;
+        const schoolName = decodeURIComponent(d.name);
+        const major = decodeURIComponent(d.major);
+        const year = parseInt(d.year);
+
+        const existing = volunteerList.find(function(item) {
+          return item.school_name === schoolName && item.major === major && item.year === year;
+        });
+
+        if (existing) {
+          btn.textContent = '已加入';
+          btn.classList.add('added');
+        } else {
+          btn.textContent = '加入志愿单';
+          btn.classList.remove('added');
+        }
+      });
+    }
+  </script>
+  <div class="crafted-by" style="padding-bottom:5px;">Crafted by <span>Nemo</span></div>
+  <div style="text-align:center;font-size:12px;color:#999;letter-spacing:1px;padding:5px 0;user-select:none;pointer-events:none;">抖音ID：<span style="background:linear-gradient(90deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">64477290792</span></div>
+  <div style="text-align:center;font-size:11px;color:#ccc;padding:5px 0;">总访问量 <span id="busuanzi_value_site_pv"></span> 次 🎯</div>
+
+  <!-- 不蒜子访问统计 -->
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+</body>
+</html>

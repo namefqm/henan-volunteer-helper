@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>志愿单测试</title>
+  <style>
+    * { margin:0; padding:0; box-sizing: border-box; }
+    body { font-family: sans-serif; background: #f5f6fa; padding: 20px; }
+    .info { background: #e8eaf6; padding: 15px; border-radius: 10px; margin-bottom: 20px; font-size: 13px; line-height: 1.8; }
+    .info strong { color: #667eea; }
+    button { padding: 12px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; margin: 5px; font-size: 14px; }
+    button:active { background: #5568d3; }
+    .log { background: #222; color: #0f0; padding: 12px; border-radius: 8px; margin-top: 15px; font-size: 12px; font-family: monospace; max-height: 300px; overflow-y: auto; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+
+<div class="info">
+  <strong>测试说明：</strong><br>
+  1. 点「写入测试数据」→ 看到绿色成功提示<br>
+  2. 点「打开志愿单」→ 跳转到志愿单页面<br>
+  3. 在志愿单页面：<strong>移动端长按卡片 500ms 激活拖动</strong>，桌面端点左侧 ⋮ 把手拖动
+</div>
+
+<button onclick="writeData()">📝 写入测试数据</button>
+<button onclick="openVolunteer()">📋 打开志愿单</button>
+<button onclick="clearData()">🗑️ 清除数据</button>
+<button onclick="checkData()">🔍 检查数据</button>
+
+<div class="log" id="log">日志：</div>
+
+<script>
+function log(msg) {
+  var el = document.getElementById('log');
+  var time = new Date().toLocaleTimeString();
+  el.textContent += '\n[' + time + '] ' + msg;
+  el.scrollTop = el.scrollHeight;
+}
+
+function writeData() {
+  log('正在写入测试数据...');
+  try {
+    var userScore = { cultureScore: 480, majorScore: 240, category: '历史类' };
+    var volunteerList = [
+      { school_name: '南通大学', major: '美术学（师范）', province: '江苏南通', min_score: 518.25, userScore: 528.00, diff: 9.75, type: 'reach', year: 2025 },
+      { school_name: '郑州轻工业大学', major: '视觉传达设计', province: '河南郑州', min_score: 510.00, userScore: 528.00, diff: 18.00, type: 'reach', year: 2025 },
+      { school_name: '河南大学', major: '环境设计', province: '河南开封', min_score: 520.00, userScore: 528.00, diff: 8.00, type: 'match', year: 2025 },
+      { school_name: '河南师范大学', major: '美术学', province: '河南新乡', min_score: 505.00, userScore: 528.00, diff: 23.00, type: 'match', year: 2025 },
+      { school_name: '洛阳师范学院', major: '视觉传达设计', province: '河南洛阳', min_score: 490.00, userScore: 528.00, diff: 38.00, type: 'safe', year: 2025 },
+      { school_name: '安阳师范学院', major: '美术学', province: '河南安阳', min_score: 480.00, userScore: 528.00, diff: 48.00, type: 'safe', year: 2024 },
+    ];
+    localStorage.setItem('userScore', JSON.stringify(userScore));
+    localStorage.setItem('volunteerList', JSON.stringify(volunteerList));
+    log('✅ 已写入 6 条测试数据！');
+    alert('✅ 已写入 6 条测试数据！现在点「打开志愿单」');
+  } catch(e) {
+    log('❌ 写入失败：' + e.message);
+    alert('写入失败：' + e.message);
+  }
+}
+
+function openVolunteer() {
+  log('正在打开志愿单...');
+  window.location.href = 'volunteer.html';
+}
+
+function clearData() {
+  localStorage.removeItem('userScore');
+  localStorage.removeItem('volunteerList');
+  log('🗑️ 已清除测试数据');
+  alert('已清除测试数据');
+}
+
+function checkData() {
+  var us = localStorage.getItem('userScore');
+  var vl = localStorage.getItem('volunteerList');
+  log('userScore: ' + (us ? '✅ 存在' : '❌ 不存在'));
+  log('volunteerList: ' + (vl ? '✅ 存在（' + JSON.parse(vl).length + ' 条）' : '❌ 不存在'));
+}
+
+// 页面加载时自动写入
+log('页面加载完成');
+writeData();
+</script>
+</body>
+</html>

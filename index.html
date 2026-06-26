@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>河南美术志愿填报助手</title>
+  <style>
+    * { margin:0; padding:0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white; border-radius: 20px; padding: 40px 30px;
+      width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .header { text-align: center; margin-bottom: 30px; }
+    .header h1 { font-size: 24px; color: #333; margin-bottom: 8px; }
+    .header p { font-size: 14px; color: #999; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-size: 14px; color: #666; margin-bottom: 8px; font-weight: 500; }
+    .form-group input, .form-group select {
+      width: 100%; padding: 12px 15px; border: 2px solid #e0e0e0;
+      border-radius: 10px; font-size: 16px; transition: all 0.3s; background: white;
+    }
+    .form-group input:focus, .form-group select:focus {
+      outline: none; border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+    }
+    .score-row { display: flex; gap: 15px; }
+    .score-row .form-group { flex: 1; }
+    .btn-match {
+      width: 100%; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; border: none; border-radius: 10px; font-size: 18px; font-weight: bold;
+      cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; margin-top: 10px;
+    }
+    .btn-match:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(102,126,234,0.4); }
+    .btn-match:active { transform: translateY(0); }
+    .btn-match:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* 结果显示区 */
+    .result-section {
+      background: #f8f9fa; border-radius: 10px; padding: 15px;
+      margin-top: 15px; display: none;
+    }
+    .result-section.active { display: block; }
+    .result-title { font-size: 15px; font-weight: 600; color: #333; margin-bottom: 10px; }
+    .result-row {
+      display: flex; justify-content: space-between; padding: 6px 0;
+      font-size: 14px; border-bottom: 1px solid #eee;
+    }
+    .result-row:last-child { border-bottom: none; }
+    .result-label { color: #666; }
+    .result-value { font-weight: 600; color: #667eea; }
+    .result-value.missing { color: #999; font-size: 12px; font-weight: 400; }
+
+    /* 综合分表格 */
+    .composite-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+    .composite-table th { background: #667eea; color: white; padding: 8px 6px; text-align: center; }
+    .composite-table td { padding: 7px 6px; text-align: center; border-bottom: 1px solid #eee; }
+    .composite-table tr:nth-child(even) td { background: #f0f0f0; }
+    .composite-table tr:hover td { background: #e8eaf6; }
+    .composite-table td.missing { color: #999; font-size: 12px; }
+
+    .info-box {
+      background: #f8f9fa; border-radius: 10px; padding: 15px;
+      margin-top: 20px; font-size: 13px; color: #666; line-height: 1.6;
+    }
+    .info-box strong { color: #667eea; }
+
+    /* 年份选择按钮组 */
+    .year-toggle {
+      display: flex; border-radius: 10px; overflow: hidden;
+      border: 2px solid #667eea; margin-bottom: 20px;
+    }
+    .year-toggle button {
+      flex: 1; padding: 10px 0; border: none; background: white;
+      color: #667eea; font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .year-toggle button.active {
+      background: #667eea; color: white;
+    }
+    .year-toggle button:not(.active):hover { background: #f0f0ff; }
+
+    /* 分数线提示 */
+    .score-label-hint { font-size: 11px; color: #999; font-weight: 400; margin-left: 4px; }
+
+    .missing-notice {
+      background: #fff3cd; border: 1px solid #ffc107;
+      border-radius: 8px; padding: 10px 12px;
+      font-size: 13px; color: #856404; margin-top: 12px;
+      line-height: 1.5;
+    }
+
+    /* 自定义冲稳保模态框 */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+      z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    .modal-overlay.active { opacity: 1; pointer-events: auto; }
+    .modal-box {
+      background: white; border-radius: 16px; padding: 28px 24px 24px;
+      width: 92%; max-width: 380px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3); transform: translateY(20px);
+      transition: transform 0.3s;
+    }
+    .modal-overlay.active .modal-box { transform: translateY(0); }
+    .modal-title { font-size: 17px; font-weight: 700; color: #333; margin-bottom: 18px; text-align: center; }
+    .modal-field { margin-bottom: 16px; }
+    .modal-field label { display: block; font-size: 13px; color: #555; margin-bottom: 5px; font-weight: 500; }
+    .modal-field .field-hint { font-size: 12px; color: #999; margin-bottom: 7px; line-height: 1.4; }
+    .modal-field input[type="number"] {
+      width: 100%; padding: 9px 11px; border: 2px solid #e0e0e0; border-radius: 8px;
+      font-size: 15px; transition: border-color 0.3s; background: #fafafa;
+    }
+    .modal-field input[type="number"]:focus { outline: none; border-color: #667eea; background: white; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 22px; }
+    .modal-actions button {
+      flex: 1; padding: 11px 0; border: none; border-radius: 10px;
+      font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-modal-save { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+    .btn-modal-save:hover { box-shadow: 0 4px 15px rgba(102,126,234,0.4); }
+    .btn-modal-cancel { background: #f0f0f0; color: #666; }
+    .btn-modal-cancel:hover { background: #e8e8e8; }
+    .btn-settings {
+      width: 100%; padding: 10px; margin-top: 10px;
+      background: white; border: 2px solid #e0e0e0; border-radius: 10px;
+      font-size: 14px; color: #666; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-settings:hover { border-color: #667eea; color: #667eea; background: #f8f7ff; }
+    .threshold-status {
+      text-align: center; font-size: 12px; color: #999; margin-top: 6px;
+      line-height: 1.5;
+    }
+    .threshold-status.has-custom { color: #667eea; font-weight: 500; }
+    .threshold-tags { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+    .threshold-tag {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: 11px; font-weight: 600;
+    }
+    .threshold-tag.reach { background: #e8f5e9; color: #2e7d32; }
+    .threshold-tag.match { background: #fff3e0; color: #e65100; }
+    .threshold-tag.safe { background: #e3f2fd; color: #1565c0; }
+
+    /* 署名 */
+    .crafted-by {
+      display: flex;
+      justify-content: center;
+      padding: 18px 0 24px;
+      font-size: 12px;
+      color: #bbb;
+      letter-spacing: 1px;
+      user-select: none;
+    }
+    .crafted-by span {
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: 600;
+    }
+    /* 本科/专科模式切换 */
+    .mode-toggle {
+      display: flex; margin: 12px 0; border-radius: 8px; overflow: hidden;
+      border: 2px solid #667eea;
+    }
+    .mode-toggle button {
+      flex: 1; padding: 10px; border: none;
+      background: white; color: #667eea; font-size: 14px;
+      font-weight: bold; cursor: pointer; transition: all 0.2s;
+    }
+    .mode-toggle button.active { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎨 河南美术志愿</h1>
+      <p>智能匹配最适合你的院校</p>
+    </div>
+
+    <!-- 本科/专科模式切换 -->
+    <div class="mode-toggle">
+      <button type="button" id="btnModeBk" class="active" onclick="switchMode('bk')">🎓 本科</button>
+      <button type="button" id="btnModeZk" onclick="switchMode('zk')">🏫 专科</button>
+    </div>
+
+    <!-- 年份选择 -->
+    <div class="year-toggle">
+      <button type="button" id="btnYear25" onclick="switchYear('25')">25年考生</button>
+      <button type="button" id="btnYear26" class="active" onclick="switchYear('26')">26年考生</button>
+    </div>
+
+    <div class="form-group">
+      <label>科类</label>
+      <select id="category">
+        <option value="历史类">历史类（文科）</option>
+        <option value="物理类">物理类（理科）</option>
+      </select>
+    </div>
+
+    <div class="score-row">
+      <div class="form-group">
+        <label>专业分<span class="score-label-hint" id="majorHint"></span></label>
+        <input type="number" id="majorScore" placeholder="0-300" min="0" max="300">
+      </div>
+      <div class="form-group">
+        <label>文化分<span class="score-label-hint" id="cultureHint"></span></label>
+        <input type="number" id="cultureScore" placeholder="0-750" min="0" max="750">
+      </div>
+    </div>
+
+    <!-- 同位次反推结果 -->
+    <div class="result-section" id="equivSection">
+      <div class="result-title">📊 同位次分数反推</div>
+      <div id="equivRows"></div>
+    </div>
+
+    <!-- 综合分计算结果 -->
+    <div class="result-section" id="compSection">
+      <div class="result-title">🧮 综合分计算结果</div>
+      <table class="composite-table" id="compTable">
+        <thead id="compTableHead"></thead>
+        <tbody id="compTableBody"></tbody>
+      </table>
+      <div id="missingNotice" class="missing-notice" style="display:none;"></div>
+    </div>
+
+    <button class="btn-match" id="btnMatch" disabled>开始匹配院校</button>
+    <button class="btn-settings" id="btnSettings" type="button" onclick="openSettingsModal()">⚙️ 自定义冲稳保分数线</button>
+    <div id="thresholdStatus" class="threshold-status"></div>
+
+    <!-- 自定义冲稳保模态框 -->
+    <div class="modal-overlay" id="settingsModal">
+      <div class="modal-box">
+        <div class="modal-title">⚙️ 自定义冲稳保分数线</div>
+
+        <div class="modal-field">
+          <label>🟢 保底线（分差下限）</label>
+          <div class="field-hint">你的综合分 − 院校最低分 ≥ 此值，归为"保底"</div>
+          <input type="number" id="settingSafe" step="1" placeholder="10">
+        </div>
+
+        <div class="modal-field">
+          <label>🟡 稳妥线（分差下限）</label>
+          <div class="field-hint">你的综合分 − 院校最低分 ≥ 此值，归为"稳妥"（须小于保底线）</div>
+          <input type="number" id="settingMatch" step="1" placeholder="-5">
+        </div>
+
+        <div class="modal-field">
+          <label>🔴 冲刺线（分差下限）</label>
+          <div class="field-hint">你的综合分 − 院校最低分 ≥ 此值，归为"冲刺"（须小于稳妥线）<br>分差小于此值的院校不会被推荐</div>
+          <input type="number" id="settingReach" step="1" placeholder="-20">
+        </div>
+
+        <div class="threshold-tags">
+          <span class="threshold-tag safe">保底：综合分 ≥ 院校线 + <span id="tagSafe">10</span> 分</span>
+          <span class="threshold-tag match">稳妥：综合分 ≥ 院校线 − <span id="tagMatch">5</span> 分</span>
+          <span class="threshold-tag reach">冲刺：综合分 ≥ 院校线 − <span id="tagReach">20</span> 分</span>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn-modal-cancel" type="button" onclick="closeSettingsModal()">取消</button>
+          <button class="btn-modal-save" type="button" onclick="saveSettings()">保存并使用</button>
+        </div>
+        <div style="margin-top:10px; text-align:center;">
+          <button class="btn-modal-reset" type="button" onclick="resetSettings()" style="background:none; border:none; color:#999; font-size:13px; cursor:pointer;">恢复默认设置</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <strong>💡 使用说明</strong><br>
+      1. 选择你是哪一年考生（25年或26年）<br>
+      2. 输入你的美术专业分和文化分<br>
+      3. 系统自动反推同位次分数，并计算综合分<br>
+      4. 点击"开始匹配院校"查看冲稳保推荐结果
+    </div>
+    <div class="crafted-by" style="padding-bottom:5px;">Crafted by&nbsp; <span>Nemo</span></div>
+  <div style="text-align:center;font-size:12px;color:#999;letter-spacing:1px;padding:5px 0;user-select:none;pointer-events:none;">抖音ID：<span style="background:linear-gradient(90deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">64477290792</span></div>
+  <div style="text-align:center;font-size:11px;color:#ccc;padding:5px 0;">总访问量 <span id="busuanzi_value_site_pv"></span> 次 🎯</div>
+
+
+  </div>
+
+  <!-- 数据文件 -->
+  <script src="static/data.js?v=20250612"></script>
+  <script src="static/data_zk.js"></script>
+  <script src="static/art_rank_data.js"></script>
+  <script src="static/culture_rank_2024_liberal.js"></script>
+  <script src="static/culture_rank_2024_science.js"></script>
+  <script src="static/culture_rank_2025_history.js"></script>
+  <script src="static/culture_rank_2025_physics.js"></script>
+  <script src="static/culture_rank_2026_history.js"></script>
+  <script src="static/culture_rank_2026_physics.js"></script>
+
+  <!-- 排序所有位次数据（按分数升序，线性插值函数依赖此顺序） -->
+  <script>
+    // 每次打开首页，清空所有历史数据，确保从干净状态开始
+    //（重新输入/重新匹配/强制退出后再打开，都会回到首页，触发清除）
+    (function clearLegacyState() {
+      var keys = ['matchResults', 'userScore', 'volunteerList', 'resultPageFilterState', 'addVolunteerType'];
+      keys.forEach(function(k) { try { localStorage.removeItem(k); } catch(e) {} });
+    })();
+
+    function sortRankData(arr, name) {
+      try {
+        if (arr && arr.length > 0) arr.sort(function(a, b) { return a.score - b.score; });
+      } catch(e) { console.warn('排序失败: ' + name, e); }
+    }
+    try { sortRankData(ART_RANK_DATA, 'ART_RANK_DATA'); } catch(e) {}
+    try { sortRankData(CULTURE_RANK_2025_HISTORY, 'CULTURE_RANK_2025_HISTORY'); } catch(e) {}
+    try { sortRankData(CULTURE_RANK_2024_LIBERAL, 'CULTURE_RANK_2024_LIBERAL'); } catch(e) {}
+    try { sortRankData(CULTURE_RANK_2025_PHYSICS, 'CULTURE_RANK_2025_PHYSICS'); } catch(e) {}
+    try { sortRankData(CULTURE_RANK_2026_HISTORY, 'CULTURE_RANK_2026_HISTORY'); } catch(e) {}
+    try { sortRankData(CULTURE_RANK_2026_PHYSICS, 'CULTURE_RANK_2026_PHYSICS'); } catch(e) {}
+    try { sortRankData(CULTURE_RANK_2024_SCIENCE, 'CULTURE_RANK_2024_SCIENCE'); } catch(e) {}
+  </script>
+
+  <script>
+  (function() {
+    // ========== 全局状态 ==========
+    let currentYear = '26';  // '25' 或 '26'
+    let currentMode = 'bk'; // 'bk' = 本科, 'zk' = 专科
+
+    // ========== DOM 元素 ==========
+    const majorInput = document.getElementById('majorScore');
+    const cultureInput = document.getElementById('cultureScore');
+    const categorySelect = document.getElementById('category');
+    const btnMatch = document.getElementById('btnMatch');
+    const equivSection = document.getElementById('equivSection');
+    const compSection = document.getElementById('compSection');
+    const majorHint = document.getElementById('majorHint');
+    const cultureHint = document.getElementById('cultureHint');
+
+    // ========== 河南省美术类省控分数线数据 ==========
+    // 数据来源：河南省教育考试院公布的各年美术类专业/文化合格线
+    const SCORE_LINES = {
+      'bk': {  // 本科
+        '26': {  // 2026年
+          '历史类': { major: 189, culture: 323 },
+          '物理类': { major: 189, culture: 332 }
+        },
+        '25': {  // 2025年
+          '历史类': { major: 193, culture: 331 },
+          '物理类': { major: 193, culture: 328 }
+        }
+      },
+      'zk': {  // 专科（高职）
+        '26': {
+          '历史类': { major: 175, culture: 159 },
+          '物理类': { major: 175, culture: 159 }
+        },
+        '25': {
+          '历史类': { major: 175, culture: 165 },
+          '物理类': { major: 175, culture: 165 }
+        }
+      }
+    };
+
+    // 更新分数线提示
+    function updateScoreHints() {
+      var mode = currentMode;
+      var year = currentYear;
+      var cat = categorySelect.value;
+      var lines = SCORE_LINES[mode] && SCORE_LINES[mode][year] && SCORE_LINES[mode][year][cat];
+      if (lines) {
+        var label = mode === 'zk' ? '专科线' : '本科线';
+        majorHint.textContent = '（' + label + lines.major + '）';
+        cultureHint.textContent = '（' + label + lines.culture + '）';
+      } else {
+        majorHint.textContent = '';
+        cultureHint.textContent = '';
+      }
+    }
+
+    // ========== 工具函数（线性插值法）==========
+
+    // 用插值法计算精确位次
+    // data: 按score降序排列；rankField: 位次字段名；score: 输入分数（任意值）
+    function getExactRank(data, rankField, score) {
+      if (isNaN(score) || !data || data.length === 0) return null;
+      var lower = null, upper = null;
+      for (var i = 0; i < data.length; i++) {
+        if (data[i].score <= score) lower = data[i];
+        if (upper === null && data[i].score >= score) upper = data[i];
+      }
+      if (!lower || !upper) return null;
+      if (lower.score === upper.score) return lower[rankField];
+      if (lower[rankField] === null || upper[rankField] === null) return null;
+      // 插值：分数越高位次越小
+      var exactRank = lower[rankField] - (lower[rankField] - upper[rankField]) * (score - lower.score) / (upper.score - lower.score);
+      return Math.round(exactRank);
+    }
+
+    // 用插值法计算精确分数
+    // data: 按score升序排列；rankField: 位次字段名；targetRank: 目标位次
+    function getScoreByRank(data, rankField, targetRank) {
+      if (targetRank === null || targetRank === undefined) return null;
+      var lower = null, upper = null;
+      for (var i = 0; i < data.length; i++) {
+        if (data[i][rankField] === null) continue;
+        if (data[i][rankField] >= targetRank) lower = data[i];
+        if (upper === null && data[i][rankField] <= targetRank) upper = data[i];
+      }
+      if (!lower || !upper) return lower ? lower.score : (upper ? upper.score : null);
+      if (lower.score === upper.score) return lower.score;
+      if (lower[rankField] === null || upper[rankField] === null) return null;
+      var exactScore = lower.score + (lower[rankField] - targetRank) / (lower[rankField] - upper[rankField]) * (upper.score - lower.score);
+      return Math.round(exactScore); // 四舍五入取整
+    }
+
+    // ========== 专业分同位次反推（线性插值法）==========
+    // year: '25' 或 '26'
+    function reverseMajor(year, majorScore) {
+      if (isNaN(majorScore) || majorScore < 175 || majorScore > 300) return null;
+
+      var result = {};
+
+      if (year === '26') {
+        // 26年输入 → 先算26年精确位次 → 反推25/24年分数
+        var rank26 = getExactRank(ART_RANK_DATA, 'rank_2026', majorScore);
+        if (rank26 === null) return null;
+        result.input = majorScore;
+        result.y25 = getScoreByRank(ART_RANK_DATA, 'rank_2025', rank26);
+        result.y24 = getScoreByRank(ART_RANK_DATA, 'rank_2024', rank26);
+      } else if (year === '25') {
+        // 25年输入 → 先算25年精确位次 → 反推24年分数
+        var rank25 = getExactRank(ART_RANK_DATA, 'rank_2025', majorScore);
+        if (rank25 === null) return null;
+        result.input = majorScore;
+        result.y25 = majorScore;
+        result.y24 = getScoreByRank(ART_RANK_DATA, 'rank_2024', rank25);
+      }
+
+      return result;
+    }
+
+    // ========== 文化分同位次反推（线性插值法）==========
+    function reverseCulture(year, cultureScore, category) {
+      if (isNaN(cultureScore)) return null;
+
+      var data25, data24, data26;
+      if (category === '历史类' || category === '文科') {
+        data25 = CULTURE_RANK_2025_HISTORY;
+        data24 = CULTURE_RANK_2024_LIBERAL;
+        data26 = CULTURE_RANK_2026_HISTORY;
+      } else if (category === '物理类' || category === '理科') {
+        data25 = CULTURE_RANK_2025_PHYSICS;
+        data24 = CULTURE_RANK_2024_SCIENCE;
+        data26 = CULTURE_RANK_2026_PHYSICS;
+      } else {
+        return null;
+      }
+
+      if (year === '25') {
+        // 25年输入 → 插值算精确位次 → 反推24年分数
+        var rank25 = getExactRank(data25, 'rank', cultureScore);
+        if (rank25 === null) return null;
+        var y24 = getScoreByRank(data24, 'rank', rank25);
+        return { input: cultureScore, y25: cultureScore, y24: y24 };
+      } else if (year === '26') {
+        // 26年输入 → 插值算精确位次 → 反推25年/24年分数
+        var rank26 = getExactRank(data26, 'rank', cultureScore);
+        if (rank26 === null) return null;
+        var y25 = getScoreByRank(data25, 'rank', rank26);
+        var y24 = getScoreByRank(data24, 'rank', rank26);
+        return { input: cultureScore, y25: y25, y24: y24 };
+      }
+      return null;
+    }
+
+    // ========== 计算5种规则综合分 ==========
+    function calcAllComposite(cScore, mScore) {
+      if (isNaN(cScore) || isNaN(mScore) || cScore === null || mScore === null) return null;
+      return [
+        Math.round(cScore * 100) / 100,
+        Math.round((cScore * 0.8 + mScore * 0.5) * 100) / 100,
+        Math.round((cScore * 0.7 + mScore * 0.75) * 100) / 100,
+        Math.round((cScore * 0.6 + mScore * 1.0) * 100) / 100,
+        Math.round((cScore * 0.5 + mScore * 1.25) * 100) / 100
+      ];
+    }
+
+    // ========== 渲染同位次反推区域 ==========
+    function renderEquivSection(majorEquiv, cultureEquiv) {
+      const container = document.getElementById('equivRows');
+      container.innerHTML = '';
+
+      if (currentYear === '25') {
+        // 25年模式：显示 25年（输入）、24年（反推）
+        appendRow(container, '专业分（2025）：', majorEquiv ? String(majorEquiv.input) : '-');
+        appendRow(container, '专业分（2024）：', majorEquiv ? (majorEquiv.y24 != null ? String(majorEquiv.y24) : '-') : '-');
+        appendRow(container, '文化分（2025）：', cultureEquiv ? String(cultureEquiv.input) : '-');
+        appendRow(container, '文化分（2024）：', cultureEquiv ? (cultureEquiv.y24 != null ? String(cultureEquiv.y24) : '-') : '-');
+      } else {
+        // 26年模式：显示 26年（输入）、25年（反推）、24年（反推）
+        appendRow(container, '专业分（2026）：', majorEquiv ? String(majorEquiv.input) : '-');
+        appendRow(container, '专业分（2025）：', majorEquiv ? (majorEquiv.y25 != null ? String(majorEquiv.y25) : '-') : '-');
+        appendRow(container, '专业分（2024）：', majorEquiv ? (majorEquiv.y24 != null ? String(majorEquiv.y24) : '-') : '-');
+        appendRow(container, '文化分（2026）：', cultureEquiv ? String(cultureEquiv.input) : '-');
+        appendRow(container, '文化分（2025）：', cultureEquiv ? (cultureEquiv.y25 != null ? String(cultureEquiv.y25) : '-') : '-');
+        appendRow(container, '文化分（2024）：', cultureEquiv ? (cultureEquiv.y24 != null ? String(cultureEquiv.y24) : '-') : '-');
+      }
+    }
+
+    function appendRow(container, label, value) {
+      const div = document.createElement('div');
+      div.className = 'result-row';
+      div.innerHTML = '<span class="result-label">' + label + '</span><span class="result-value">' + value + '</span>';
+      container.appendChild(div);
+      return div;
+    }
+
+    // ========== 渲染综合分表格 ==========
+    function renderCompTable(majorEquiv, cultureEquiv) {
+      const thead = document.getElementById('compTableHead');
+      const tbody = document.getElementById('compTableBody');
+      const notice = document.getElementById('missingNotice');
+      thead.innerHTML = '';
+      tbody.innerHTML = '';
+      notice.style.display = 'none';
+
+      const allRules = ['纯文化分', '文八专二', '文七专三', '文六专四', '文五专五'];
+      const rules = currentMode === 'zk' ? ['文五专五'] : allRules;
+
+      if (currentYear === '25') {
+        // 25年模式：显示 25年、24年 两列
+        thead.innerHTML = '<tr><th>计算公式</th><th>2025年</th><th>2024年</th></tr>';
+
+        const comp25 = calcAllComposite(
+          cultureEquiv ? cultureEquiv.input : null,
+          majorEquiv ? majorEquiv.input : null
+        );
+        const comp24 = calcAllComposite(
+          cultureEquiv ? cultureEquiv.y24 : null,
+          majorEquiv ? majorEquiv.y24 : null
+        );
+
+        rules.forEach(function(rule) {
+          var idx = allRules.indexOf(rule);  // 通过规则名称找到正确的索引
+          var v25 = '-';
+          var v24 = '-';
+          if (comp25 && idx >= 0) v25 = comp25[idx].toFixed(2);
+          if (comp24 && idx >= 0) v24 = comp24[idx].toFixed(2);
+          var tr = document.createElement('tr');
+          tr.innerHTML = '<td>' + rule + '</td><td>' + v25 + '</td><td>' + v24 + '</td>';
+          tbody.appendChild(tr);
+        });
+      } else {
+        // 26年模式：显示 26年、25年、24年 三列
+        thead.innerHTML = '<tr><th>计算公式</th><th>2026年</th><th>2025年</th><th>2024年</th></tr>';
+
+        var comp26 = calcAllComposite(
+          cultureEquiv ? cultureEquiv.input : null,
+          majorEquiv ? majorEquiv.input : null
+        );
+
+        rules.forEach(function(rule) {
+          var idx = allRules.indexOf(rule);
+          var v26 = '-';
+          var v25text = '-';
+          var v24text = '-';
+
+          if (comp26 && idx >= 0) v26 = comp26[idx].toFixed(2);
+
+          if (majorEquiv && cultureEquiv) {
+            var c25 = calcAllComposite(cultureEquiv.y25, majorEquiv.y25);
+            var c24 = calcAllComposite(cultureEquiv.y24, majorEquiv.y24);
+            if (c25 && idx >= 0) v25text = c25[idx].toFixed(2);
+            if (c24 && idx >= 0) v24text = c24[idx].toFixed(2);
+          }
+
+          var tr = document.createElement('tr');
+          tr.innerHTML = '<td>' + rule + '</td><td>' + v26 + '</td><td>' + v25text + '</td><td>' + v24text + '</td>';
+          tbody.appendChild(tr);
+        });
+      }
+    }
+
+    // ========== 更新页面显示 ==========
+    window.updateDisplay = function() {
+      var ms = parseFloat(majorInput.value);
+      var cs = parseFloat(cultureInput.value);
+      var cat = categorySelect.value;
+
+      if (isNaN(ms) || isNaN(cs)) {
+        equivSection.classList.remove('active');
+        compSection.classList.remove('active');
+        return;
+      }
+
+      // 1. 同位次反推
+      var majorEquiv = reverseMajor(currentYear, ms);
+      var cultureEquiv = reverseCulture(currentYear, cs, cat);
+
+      renderEquivSection(majorEquiv, cultureEquiv);
+      equivSection.classList.add('active');
+
+      // 2. 综合分计算
+      renderCompTable(majorEquiv, cultureEquiv);
+      compSection.classList.add('active');
+    };
+
+    // ========== 模式/年份切换 ==========
+    window.switchMode = function(mode) {
+      currentMode = mode;
+      document.getElementById('btnModeBk').classList.toggle('active', mode === 'bk');
+      document.getElementById('btnModeZk').classList.toggle('active', mode === 'zk');
+      updateScoreHints();
+      // 切换模式后重新计算综合分（专科仅文五专五）
+      if (majorInput.value || cultureInput.value) {
+        updateDisplay();
+      }
+    };
+
+    window.switchYear = function(year) {
+      currentYear = year;
+      document.getElementById('btnYear25').classList.toggle('active', year === '25');
+      document.getElementById('btnYear26').classList.toggle('active', year === '26');
+      updateScoreHints();
+      // 切换年份后重新计算
+      if (majorInput.value || cultureInput.value) {
+        updateDisplay();
+      }
+    };
+
+    // ========== 输入验证 ==========
+    function validateInputs() {
+      var ms = parseFloat(majorInput.value);
+      var cs = parseFloat(cultureInput.value);
+      btnMatch.disabled = !(ms >= 175 && ms <= 300 && cs >= 0 && cs <= 750);
+    }
+
+    // ========== 事件绑定 ==========
+    majorInput.addEventListener('input', function() { validateInputs(); updateDisplay(); });
+    cultureInput.addEventListener('input', function() { validateInputs(); updateDisplay(); });
+    categorySelect.addEventListener('change', function() { updateScoreHints(); updateDisplay(); });
+
+    // ========== 自定义冲稳保设置 ==========
+    var SETTINGS_KEY = 'customThresholds';
+    var DEFAULT_THRESHOLDS = { safe: 10, match: -5, reach: -20 };
+
+    function getThresholds() {
+      try {
+        var saved = localStorage.getItem(SETTINGS_KEY);
+        if (saved) {
+          var parsed = JSON.parse(saved);
+          if (typeof parsed.safe === 'number' && typeof parsed.match === 'number' && typeof parsed.reach === 'number') {
+            return parsed;
+          }
+        }
+      } catch(e) {}
+      return { safe: DEFAULT_THRESHOLDS.safe, match: DEFAULT_THRESHOLDS.match, reach: DEFAULT_THRESHOLDS.reach };
+    }
+
+    function updateThresholdStatus() {
+      var t = getThresholds();
+      var isDefault = t.safe === DEFAULT_THRESHOLDS.safe && t.match === DEFAULT_THRESHOLDS.match && t.reach === DEFAULT_THRESHOLDS.reach;
+      var el = document.getElementById('thresholdStatus');
+      if (!el) return;
+      if (isDefault) {
+        el.textContent = '当前：保底线≥' + t.safe + '分，稳妥线≥' + t.match + '分，冲刺线≥' + t.reach + '分（默认）';
+        el.classList.remove('has-custom');
+      } else {
+        el.textContent = '当前（已自定义）：保底线≥' + t.safe + '分，稳妥线≥' + t.match + '分，冲刺线≥' + t.reach + '分';
+        el.classList.add('has-custom');
+      }
+    }
+
+    window.openSettingsModal = function() {
+      var t = getThresholds();
+      document.getElementById('settingSafe').value = t.safe;
+      document.getElementById('settingMatch').value = t.match;
+      document.getElementById('settingReach').value = t.reach;
+      updateThresholdTags(t.safe, t.match, t.reach);
+      document.getElementById('settingsModal').classList.add('active');
+    };
+
+    window.closeSettingsModal = function() {
+      document.getElementById('settingsModal').classList.remove('active');
+    };
+
+    function updateThresholdTags(safe, match, reach) {
+      document.getElementById('tagSafe').textContent = safe;
+      document.getElementById('tagMatch').textContent = Math.abs(match);
+      document.getElementById('tagReach').textContent = Math.abs(reach);
+    }
+
+    // 输入框实时更新标签预览（脚本在 body 底部，DOM 已就绪）
+    ['settingSafe','settingMatch','settingReach'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', function() {
+        var s = parseInt(document.getElementById('settingSafe').value);
+        var m = parseInt(document.getElementById('settingMatch').value);
+        var r = parseInt(document.getElementById('settingReach').value);
+        if (!isNaN(s) && !isNaN(m) && !isNaN(r)) {
+          updateThresholdTags(s, m, r);
+        }
+      });
+    });
+
+    window.saveSettings = function() {
+      var s = parseInt(document.getElementById('settingSafe').value);
+      var m = parseInt(document.getElementById('settingMatch').value);
+      var r = parseInt(document.getElementById('settingReach').value);
+      if (isNaN(s) || isNaN(m) || isNaN(r)) {
+        alert('请输入有效的数字'); return;
+      }
+      if (s <= m) { alert('保底线须大于稳妥线'); return; }
+      if (m <= r) { alert('稳妥线须大于冲刺线'); return; }
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ safe: s, match: m, reach: r }));
+      closeSettingsModal();
+      updateThresholdStatus();
+      alert('设置已保存，本次匹配将使用新阈值');
+    };
+
+    window.resetSettings = function() {
+      if (!confirm('确认恢复默认设置？')) return;
+      localStorage.removeItem(SETTINGS_KEY);
+      var t = DEFAULT_THRESHOLDS;
+      document.getElementById('settingSafe').value = t.safe;
+      document.getElementById('settingMatch').value = t.match;
+      document.getElementById('settingReach').value = t.reach;
+      updateThresholdTags(t.safe, t.match, t.reach);
+      updateThresholdStatus();
+      alert('已恢复默认设置');
+    };
+
+    // 点击遮罩关闭模态框
+    document.addEventListener('click', function(e) {
+      if (e.target && e.target.id === 'settingsModal') {
+        closeSettingsModal();
+      }
+    });
+
+    // ========== 匹配跳转 ==========
+    btnMatch.addEventListener('click', function() {
+      var cat = categorySelect.value;
+      var ms = parseFloat(majorInput.value);
+      var cs = parseFloat(cultureInput.value);
+
+      if (!cat || isNaN(ms) || isNaN(cs)) {
+        alert('请填写完整的科类、文化分和专业分');
+        return;
+      }
+
+      // 用当前输入分数计算匹配结果，传入年份筛选
+      var results = matchSchools(cs, ms, cat, currentYear);
+
+      // 调试信息
+      console.log('匹配结果:', results);
+      console.log('冲:', results.reach.length, '所');
+      console.log('稳:', results.match.length, '所');
+      console.log('保:', results.safe.length, '所');
+      
+      // 显示提示
+      if (results.reach.length === 0 && results.match.length === 0 && results.safe.length === 0) {
+        alert('未找到匹配的院校！请尝试调整分数或科类。');
+        return; // 不跳转
+      }
+
+      localStorage.setItem('matchResults', JSON.stringify(results));
+      localStorage.setItem('userScore', JSON.stringify({
+        cultureScore: cs, majorScore: ms, category: cat, year: currentYear, mode: currentMode
+      }));
+
+      // 新搜索，清除旧的筛选项状态
+      localStorage.removeItem('resultPageFilterState');
+
+      window.location.href = 'result.html';
+    });
+
+    // ========== 匹配算法 ==========
+    function calculateCompositeScore(cultureScore, majorScore, cultureRatio, majorRatio) {
+      // cultureRatio 和 majorRatio 是百分比格式（如 50 代表50%，125 代表125%）
+      if (cultureRatio === 100) return cultureScore;
+      return cultureScore * (cultureRatio / 100) + majorScore * (majorRatio / 100);
+    }
+
+    // 科类映射：新高考（历史类/物理类）对应老高考（文科/理科）
+    function categoryMatches(schoolCategory, userCategory) {
+      if (schoolCategory === userCategory) return true;
+      if (userCategory === '历史类' && schoolCategory === '文科') return true;
+      if (userCategory === '物理类' && schoolCategory === '理科') return true;
+      // 反向也支持（数据是新高考，用户选了老高考词）
+      if (userCategory === '文科' && schoolCategory === '历史类') return true;
+      if (userCategory === '理科' && schoolCategory === '物理类') return true;
+      return false;
+    }
+
+    function matchSchools(userCulture, userMajor, category, year) {
+      var results = { reach: [], match: [], safe: [] };
+      var t = getThresholds();
+      var data = currentMode === 'zk' ? (typeof SCHOOL_DATA_ZX !== 'undefined' ? SCHOOL_DATA_ZX : []) : SCHOOL_DATA;
+      if (!data || data.length === 0) {
+        console.log('当前模式无数据:', currentMode);
+        return results;
+      }
+
+      // 预先计算等效分（每个年份只算一次，避免重复计算）
+      var majorEquiv = reverseMajor(year, userMajor);
+      var cultureEquiv = reverseCulture(year, userCulture, category);
+
+      data.forEach(function(school) {
+        if (!categoryMatches(school.category, category)) return;
+
+        // 根据选择的年份过滤数据
+        if (year === '26') {
+          // 26年考生：看2025年和2024年数据
+          if (String(school.year) !== '2025' && String(school.year) !== '2024') return;
+        } else if (year === '25') {
+          // 25年考生：看2025年和2024年数据
+          if (String(school.year) !== '2025' && String(school.year) !== '2024') return;
+        }
+
+        var schoolScore = school.min_score;
+        if (!schoolScore) return;
+
+        // 根据院校年份和用户年份，用对应的等效分计算用户综合分
+        var userScoreNum;
+        var scoreDebugInfo = '';
+        if (school.year === 2025) {
+          if (year === '26') {
+            // 26年考生匹配25年数据：用25年等效分
+            var m25 = majorEquiv && majorEquiv.y25 != null ? majorEquiv.y25 : null;
+            var c25 = cultureEquiv && cultureEquiv.y25 != null ? cultureEquiv.y25 : null;
+            if (m25 === null || c25 === null) return;
+            userScoreNum = calculateCompositeScore(c25, m25, school.culture_ratio, school.major_ratio);
+            scoreDebugInfo = '26年考生/25年数据: c25='+c25+' m25='+m25+' ratio='+school.culture_ratio+'/'+school.major_ratio+' userScore='+userScoreNum;
+          } else {
+            // 25年考生匹配25年数据：直接用用户输入分数
+            userScoreNum = calculateCompositeScore(userCulture, userMajor, school.culture_ratio, school.major_ratio);
+            scoreDebugInfo = '25年考生/25年数据: 原始culture='+userCulture+' major='+userMajor+' userScore='+userScoreNum;
+          }
+        } else if (school.year === 2024) {
+          // 用2024年等效分（26年和25年考生都走这个逻辑）
+          var m24 = majorEquiv && majorEquiv.y24 != null ? majorEquiv.y24 : null;
+          var c24 = cultureEquiv && cultureEquiv.y24 != null ? cultureEquiv.y24 : null;
+          if (m24 === null || c24 === null) return; // 等效分缺失，跳过
+          userScoreNum = calculateCompositeScore(c24, m24, school.culture_ratio, school.major_ratio);
+          scoreDebugInfo = '24年数据: c24='+c24+' m24='+m24+' userScore='+userScoreNum;
+        } else {
+          return; // 其他年份不支持
+        }
+
+        // 调试：控制台输出关键院校的计算明细
+        if (school.school_name.indexOf('信阳农林') !== -1) {
+          console.log('【DEBUG】'+school.school_name+' | '+school.major+' ('+school.year+'年) | '+scoreDebugInfo+' | min_score='+school.min_score);
+        }
+
+        var diff = userScoreNum - schoolScore;
+        var entry = Object.assign({}, school, {
+          userScore: Math.round(userScoreNum*100)/100,
+          diff: Math.round(diff*100)/100
+        });
+
+        if (diff >= t.safe) results.safe.push(entry);
+        else if (diff >= t.match) results.match.push(entry);
+        else if (diff >= t.reach) results.reach.push(entry);
+      });
+
+      results.reach.sort(function(a,b){ return b.diff - a.diff; });
+      results.match.sort(function(a,b){ return b.diff - a.diff; });
+      results.safe.sort(function(a,b){ return b.diff - a.diff; });
+      return results;
+    }
+
+    // 页面加载时显示当前阈值设置和分数线提示
+    updateThresholdStatus();
+    updateScoreHints();
+
+  })();
+  </script>
+  <!-- 不蒜子访问统计 -->
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+</body>
+</html>

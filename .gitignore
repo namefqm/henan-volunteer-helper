@@ -1,0 +1,6 @@
+.DS_Store
+*.log
+node_modules/
+# 临时脚本和备份文件
+apply_*.js
+static/data.js.backup*

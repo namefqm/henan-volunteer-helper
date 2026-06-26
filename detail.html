@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>院校详情 - 河南美术志愿</title>
+  <style>
+    * { margin:0; padding:0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #f5f6fa;
+      padding-bottom: 80px;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; padding: 20px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .btn-back {
+      background: rgba(255,255,255,0.2); border: none; color: white;
+      padding: 8px 15px; border-radius: 20px; font-size: 14px;
+      cursor: pointer; margin-bottom: 10px; display: inline-block;
+    }
+    .header h1 { font-size: 20px; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .header h1 .meta-inline { font-size: 13px; font-weight: 400; opacity: 0.85; }
+    .header .major-name {
+      font-size: 26px; font-weight: 700; margin-bottom: 4px;
+      line-height: 1.3;
+    }
+    .header .subtitle { font-size: 13px; opacity: 0.85; }
+
+    .content { padding: 20px; }
+
+    .info-card {
+      background: white; border-radius: 15px; padding: 20px;
+      margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    .info-card h3 { font-size: 16px; color: #333; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #f0f0f0; }
+
+    /* ========== 综合分表格（录取专业+录取信息合并） ==========
+       表格列：科类 | 年份 | 专业 | 文化成绩比例/% | 专业成绩比例/% | 计划数 | 实际投档人数 | 投档最低分 | 差值
+       按 科类 分组，科类单元格跨行合并
+    */
+    .admission-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .admission-table {
+      width: 100%; min-width: 720px; border-collapse: collapse;
+      font-size: 13px;
+    }
+    .admission-table th {
+      text-align: center; padding: 10px 10px; color: #fff; font-weight: 600;
+      background: #667eea; font-size: 13px; white-space: nowrap;
+      border-right: 1px solid rgba(255,255,255,0.15);
+    }
+    .admission-table th:last-child { border-right: none; }
+    .admission-table td {
+      padding: 9px 10px; color: #333; border-bottom: 1px solid #eee;
+      vertical-align: middle; white-space: nowrap; text-align: center;
+    }
+    .admission-table tr:nth-child(even) td { background: #fafbfe; }
+    .admission-table tr:hover td { background: #eef1ff; }
+
+    /* 科类列（左侧） */
+    .admission-table .col-cat {
+      font-weight: 600; color: #667eea; background: #f0f3ff !important;
+      text-align: center;
+    }
+
+    /* 专业名可点击 */
+    .admission-table .col-major {
+      cursor: pointer; color: #333; font-weight: 500;
+      transition: background 0.15s; padding: 9px 12px;
+    }
+    .admission-table .col-major:hover {
+      color: #667eea; text-decoration: underline;
+    }
+    .admission-table .col-major.is-current {
+      color: #667eea; font-weight: 700; background: #ede7ff;
+    }
+
+    /* 数字右对齐 */
+    .admission-table .num { text-align: center; font-family: "SF Mono", Monaco, Consolas, monospace; }
+    .admission-table .diff-positive { color: #4caf50; font-weight: 600; }
+    .admission-table .diff-negative { color: #f44336; font-weight: 600; }
+    .admission-table .diff-neutral { color: #999; }
+
+    /* 综合分卡片 */
+    .score-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; border-radius: 15px; padding: 18px; margin-bottom: 15px;
+    }
+    .score-card-title { font-size: 13px; opacity: 0.85; margin-bottom: 6px; }
+    .score-card-value { font-size: 32px; font-weight: bold; }
+    .score-card-diff { font-size: 14px; margin-top: 8px; opacity: 0.9; }
+    .score-card-diff .positive { color: #a5d6a7; }
+    .score-card-diff .negative { color: #ef9a9a; }
+    .score-card-missing { font-size: 13px; margin-top: 8px; opacity: 0.7; font-style: italic; }
+    .score-cards-row { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; }
+    .score-cards-row .score-card { flex: 1; min-width: 140px; }
+
+    .btn-add {
+      width: 100%; padding: 15px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; border: none; border-radius: 10px;
+      font-size: 16px; font-weight: bold; cursor: pointer; transition: transform 0.2s;
+    }
+    .btn-add:hover { transform: translateY(-2px); }
+    .btn-add:active { transform: translateY(0); }
+    .btn-added { background: #4caf50; }
+
+    .bottom-bar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: white; padding: 15px 20px;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 1000;
+    }
+
+    .no-data { color: #999; font-size: 13px; font-style: italic; text-align: center; padding: 20px; }
+
+    /* 提示文字 */
+    .table-hint { font-size: 11px; color: #aaa; margin-top: 8px; text-align: center; }
+    /* 署名 */
+    .crafted-by {
+      text-align: center;
+      padding: 18px 0 24px;
+      font-size: 12px;
+      color: #bbb;
+      letter-spacing: 1px;
+      user-select: none;
+    }
+    .crafted-by span {
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+    <div class="header" id="header">
+    <button class="btn-back" onclick="goBack()">← 返回列表</button>
+    <h1 id="schoolName">加载中...</h1>
+    <div class="major-name" id="majorName"></div>
+    <div class="subtitle" id="subtitle"></div>
+  </div>
+
+  <div class="content">
+    <!-- 综合分区域 -->
+    <div id="scoreCardsContainer"></div>
+
+    <!-- 录取专业 + 录取信息 合并大表 -->
+    <div class="info-card" id="admissionCard">
+      <h3>📊 录取专业</h3>
+      <div class="admission-table-wrap" id="admissionTableWrap"></div>
+      <div class="table-hint">💡 点击专业名称可切换查看该专业的详情数据</div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <button class="btn-add" id="btnAdd" onclick="addToVolunteer()">📋 加入志愿单</button>
+  </div>
+
+  <!-- 数据文件 -->
+  <script src="static/data.js?v=20250612"></script>
+  <script src="static/data_zk.js"></script>
+  <script src="static/major_groups.js"></script>
+  <script src="static/art_rank_data.js"></script>
+  <script src="static/culture_rank_2024_liberal.js"></script>
+  <script src="static/culture_rank_2024_science.js"></script>
+  <script src="static/culture_rank_2025_history.js"></script>
+  <script src="static/culture_rank_2025_physics.js"></script>
+  <script src="static/culture_rank_2026_history.js"></script>
+  <script src="static/culture_rank_2026_physics.js"></script>
+
+  <!-- 排序所有位次数据 -->
+  <script>
+    (function() {
+      function s(a) { if(a&&a.length>0) a.sort(function(x,y){return x.score-y.score;}); }
+      s(ART_RANK_DATA);
+      s(CULTURE_RANK_2025_HISTORY);
+      s(CULTURE_RANK_2024_LIBERAL);
+      s(CULTURE_RANK_2025_PHYSICS);
+      s(CULTURE_RANK_2024_SCIENCE);
+      s(CULTURE_RANK_2026_HISTORY);
+      s(CULTURE_RANK_2026_PHYSICS);
+    })();
+  </script>
+
+  <script>
+  (function() {
+    // ========== 工具函数 ==========
+
+    function calculateCompositeScore(cultureScore, majorScore, cultureRatio, majorRatio) {
+      if (cultureRatio === 100) return cultureScore;
+      return cultureScore * (cultureRatio / 100) + majorScore * (majorRatio / 100);
+    }
+
+    // 插值法计算精确位次
+    function getExactRank(data, rankField, score) {
+      if (isNaN(score) || !data || data.length === 0) return null;
+      var lower = null, upper = null;
+      for (var i = 0; i < data.length; i++) {
+        if (data[i].score <= score) lower = data[i];
+        if (upper === null && data[i].score >= score) upper = data[i];
+      }
+      if (!lower || !upper) return null;
+      if (lower.score === upper.score) return lower[rankField];
+      if (lower[rankField] === null || upper[rankField] === null) return null;
+      var exactRank = lower[rankField] - (lower[rankField] - upper[rankField]) * (score - lower.score) / (upper.score - lower.score);
+      return Math.round(exactRank);
+    }
+
+    // 插值法由位次反推精确分数
+    function getScoreByRank(data, rankField, targetRank) {
+      if (targetRank === null || targetRank === undefined) return null;
+      var lower = null, upper = null;
+      for (var i = 0; i < data.length; i++) {
+        if (data[i][rankField] === null) continue;
+        if (data[i][rankField] >= targetRank) lower = data[i];
+        if (upper === null && data[i][rankField] <= targetRank) upper = data[i];
+      }
+      if (!lower || !upper) return lower ? lower.score : (upper ? upper.score : null);
+      if (lower.score === upper.score) return lower.score;
+      if (lower[rankField] === null || upper[rankField] === null) return null;
+      var exactScore = lower.score + (lower[rankField] - targetRank) / (lower[rankField] - upper[rankField]) * (upper.score - lower.score);
+      return Math.round(exactScore);
+    }
+
+    // ========== 专业分同位次反推 ==========
+    function reverseMajor(year, majorScore) {
+      if (isNaN(majorScore) || majorScore < 175 || majorScore > 300) return null;
+      var result = {};
+      if (year === '26') {
+        var rank26 = getExactRank(ART_RANK_DATA, 'rank_2026', majorScore);
+        if (rank26 === null) return null;
+        result.input = majorScore;
+        result.y25 = getScoreByRank(ART_RANK_DATA, 'rank_2025', rank26);
+        result.y24 = getScoreByRank(ART_RANK_DATA, 'rank_2024', rank26);
+      } else if (year === '25') {
+        var rank25 = getExactRank(ART_RANK_DATA, 'rank_2025', majorScore);
+        if (rank25 === null) return null;
+        result.input = majorScore;
+        result.y25 = majorScore;
+        result.y24 = getScoreByRank(ART_RANK_DATA, 'rank_2024', rank25);
+      }
+      return result;
+    }
+
+    // ========== 文化分同位次反推 ==========
+    function reverseCulture(year, cultureScore, category) {
+      if (isNaN(cultureScore)) return null;
+      var data25, data24, data26;
+      if (category === '历史类' || category === '文科') {
+        data25 = CULTURE_RANK_2025_HISTORY;
+        data24 = CULTURE_RANK_2024_LIBERAL;
+        data26 = CULTURE_RANK_2026_HISTORY;
+      } else if (category === '物理类' || category === '理科') {
+        data25 = CULTURE_RANK_2025_PHYSICS;
+        data24 = CULTURE_RANK_2024_SCIENCE;
+        data26 = CULTURE_RANK_2026_PHYSICS;
+      } else {
+        return null;
+      }
+      if (year === '25') {
+        var rank25 = getExactRank(data25, 'rank', cultureScore);
+        if (rank25 === null) return null;
+        var y24 = getScoreByRank(data24, 'rank', rank25);
+        return { input: cultureScore, y25: cultureScore, y24: y24 };
+      } else if (year === '26') {
+        var rank26 = getExactRank(data26, 'rank', cultureScore);
+        if (rank26 === null) return null;
+        var y25 = getScoreByRank(data25, 'rank', rank26);
+        var y24 = getScoreByRank(data24, 'rank', rank26);
+        return { input: cultureScore, y25: y25, y24: y24 };
+      }
+      return null;
+    }
+
+    function getFormulaText(cultureRatio, majorRatio) {
+      if (cultureRatio === 100 && majorRatio === 0) return '纯文化分';
+      if (cultureRatio === 80 && majorRatio === 50) return '文八专二';
+      if (cultureRatio === 70 && majorRatio === 75) return '文七专三';
+      if (cultureRatio === 60 && majorRatio === 100) return '文六专四';
+      if (cultureRatio === 50 && majorRatio === 125) return '文五专五';
+      return '其他(' + cultureRatio + '/' + majorRatio + ')';
+    }
+
+    function normName(name) {
+      return name.replace(/\([^)]*\)/g, '').replace(/（[^）]*）/g, '').replace(/\[[^\]]*\]/g, '').replace(/【[^】]*】/g, '').trim();
+    }
+
+    function categoryMatches(schoolCategory, userCategory) {
+      if (schoolCategory === userCategory) return true;
+      if (userCategory === '历史类' && schoolCategory === '文科') return true;
+      if (userCategory === '物理类' && schoolCategory === '理科') return true;
+      if (userCategory === '文科' && schoolCategory === '历史类') return true;
+      if (userCategory === '理科' && schoolCategory === '物理类') return true;
+      return false;
+    }
+
+    // ========== 主逻辑 ==========
+    var currentSchool = JSON.parse(localStorage.getItem('currentSchool') || '{}');
+    var userScore = JSON.parse(localStorage.getItem('userScore') || '{}');
+    var schoolInfo = null;
+    var allYearsData = [];
+
+    // 查找当前专业信息（支持本科和专科数据源）
+    function findInDataSource(dataSource) {
+      if (!dataSource || !currentSchool.school_name) return null;
+      var userCat = (userScore && userScore.category) || '';
+      if (userCat) {
+        var byUserCat = dataSource.find(function(s) {
+          return s.school_name === currentSchool.school_name &&
+                 s.major === currentSchool.major &&
+                 String(s.year) === String(currentSchool.year) &&
+                 categoryMatches(s.category, userCat);
+        });
+        if (byUserCat) return byUserCat;
+      }
+      if (currentSchool.category) {
+        var exact = dataSource.find(function(s) {
+          return s.school_name === currentSchool.school_name &&
+                 s.major === currentSchool.major &&
+                 String(s.year) === String(currentSchool.year) &&
+                 s.category === currentSchool.category;
+        });
+        if (exact) return exact;
+      }
+      var exact = dataSource.find(function(s) {
+        return s.school_name === currentSchool.school_name &&
+               s.major === currentSchool.major &&
+               String(s.year) === String(currentSchool.year);
+      });
+      if (exact) return exact;
+      var base = normName(currentSchool.school_name);
+      var result = dataSource.filter(function(s) {
+        return normName(s.school_name) === base &&
+               s.major === currentSchool.major &&
+               String(s.year) === String(currentSchool.year);
+      });
+      return result.length > 0 ? result[0] : null;
+    }
+    
+    function findCurrentSchool() {
+      // 先查本科数据
+      var result = findInDataSource(SCHOOL_DATA);
+      if (result) return result;
+      // 再查专科数据
+      return findInDataSource(typeof SCHOOL_DATA_ZX !== 'undefined' ? SCHOOL_DATA_ZX : null);
+    }
+
+    schoolInfo = findCurrentSchool();
+
+    // 找该校所有年份的数据（用于表格展示）
+    // 获取所有数据源
+    function getAllDataSources() {
+      var sources = [SCHOOL_DATA];
+      if (typeof SCHOOL_DATA_ZX !== 'undefined') sources.push(SCHOOL_DATA_ZX);
+      return sources;
+    }
+
+    // 在所有数据源中查找学校的所有年份数据
+    function findAllSchoolData(schoolName) {
+      // 根据 schoolInfo 的来源确定用哪个数据源
+      var isZhuanke = schoolInfo && schoolInfo.level && schoolInfo.level.indexOf('专科') !== -1;
+      var sources = [];
+      if (isZhuanke) {
+        // 专科学校 → 只用专科数据
+        if (typeof SCHOOL_DATA_ZX !== 'undefined') sources.push(SCHOOL_DATA_ZX);
+      } else {
+        sources.push(SCHOOL_DATA);
+        if (typeof SCHOOL_DATA_ZX !== 'undefined') sources.push(SCHOOL_DATA_ZX);
+      }
+      var seen = {};
+      sources.forEach(function(ds) {
+        if (!ds) return;
+        var exact = ds.filter(function(s) { return s.school_name === schoolName; });
+        var base = normName(schoolName);
+        var fuzzy = ds.filter(function(s) {
+          return normName(s.school_name) === base && s.school_name !== schoolName;
+        });
+        exact.concat(fuzzy).forEach(function(s) {
+          var key = s.school_name + '|' + s.major + '|' + s.year + '|' + s.category;
+          if (!seen[key]) seen[key] = s;
+        });
+      });
+      return Object.values(seen);
+    }
+
+    if (schoolInfo) {
+      allYearsData = findAllSchoolData(schoolInfo.school_name);
+    }
+
+    if (!schoolInfo) {
+      document.getElementById('schoolName').textContent = '未找到院校信息';
+      return;
+    }
+
+    // 显示基本信息
+    var userCat = (userScore && userScore.category) || '';
+    var metaParts = [];
+    if (schoolInfo.province) metaParts.push('📍 ' + schoolInfo.province);
+    if (schoolInfo.level) metaParts.push('🏫 ' + schoolInfo.level);
+    document.getElementById('schoolName').innerHTML =
+      escapeHtml(schoolInfo.school_name) +
+      (metaParts.length ? ' <span class="meta-inline">' + metaParts.join(' ') + '</span>' : '');
+    document.getElementById('majorName').textContent = schoolInfo.major;
+    var subtitleText = schoolInfo.year + '年 · ' + schoolInfo.category + ' · 最低录取分：' + schoolInfo.min_score;
+    if (userCat && !categoryMatches(schoolInfo.category, userCat)) {
+      subtitleText += '（当前科类与您选择的「' + userCat + '」不一致，该校该专业暂无' + userCat + '招生数据）';
+    }
+    document.getElementById('subtitle').textContent = subtitleText;
+
+    // 渲染顺序：综合分卡片 → 录取专业大表
+    renderScoreCards();
+    renderAdmissionTable();
+
+    // ================================================================
+    //  渲染综合分卡片
+    //  每张卡片显示：年份我的综合分 + 分数 | 专业最低分 | 差距
+    //  25年模式：2025 → 2024；26年模式：2026 → 2025 → 2024
+    // ================================================================
+    function renderScoreCards() {
+      if (!userScore.cultureScore || !userScore.majorScore) {
+        document.getElementById('scoreCardsContainer').innerHTML = '';
+        return;
+      }
+
+      var container = document.getElementById('scoreCardsContainer');
+      var year = userScore.year || '26';
+      var ms = userScore.majorScore;
+      var cs = userScore.cultureScore;
+      var cat = userScore.category || '历史类';
+      var __mg = (typeof getMajorGroup === 'function') ? getMajorGroup(schoolInfo.major) : schoolInfo.major;
+
+      var majorEquiv = reverseMajor(year, ms);
+      var cultureEquiv = reverseCulture(year, cs, cat);
+
+      var cards = [];
+
+      function findInfoByYearAndMajor(y) {
+        var userCatLocal = (userScore && userScore.category) || '';
+        var candidates = allYearsData.filter(function(s) {
+          return String(s.year) === String(y) &&
+                 (s.major === schoolInfo.major || (typeof getMajorGroup === 'function' && getMajorGroup(s.major) === __mg));
+        });
+        if (candidates.length === 0) return null;
+        if (!userCatLocal) return candidates[0];
+        var exact = candidates.find(function(s) { return s.category === userCatLocal; });
+        if (exact) return exact;
+        var compat = candidates.find(function(s) { return categoryMatches(s.category, userCatLocal); });
+        if (compat) return compat;
+        return null;
+      }
+
+      function makeCard(y, score, minScore, diff, missing) {
+        cards.push({ year: y, score: score, minScore: minScore, diff: diff, missing: missing });
+      }
+
+      if (year === '25') {
+        // 25年模式：显示 2025、2024
+        var score25 = calculateCompositeScore(cs, ms, schoolInfo.culture_ratio, schoolInfo.major_ratio);
+        var diff25 = score25 - schoolInfo.min_score;
+        makeCard('2025', score25, schoolInfo.min_score, diff25, false);
+
+        if (majorEquiv && majorEquiv.y24 != null && cultureEquiv && cultureEquiv.y24 != null) {
+          var score24 = calculateCompositeScore(cultureEquiv.y24, majorEquiv.y24, schoolInfo.culture_ratio, schoolInfo.major_ratio);
+          var info24 = findInfoByYearAndMajor('2024');
+          if (info24) {
+            makeCard('2024', score24, info24.min_score, score24 - info24.min_score, false);
+          } else {
+            makeCard('2024', score24, null, null, true);
+          }
+        } else {
+          makeCard('2024', null, null, null, true);
+        }
+      } else {
+        // 26年模式：显示 2026、2025、2024
+        var score26 = calculateCompositeScore(cs, ms, schoolInfo.culture_ratio, schoolInfo.major_ratio);
+        var diff26 = score26 - schoolInfo.min_score;
+        makeCard('2026', score26, schoolInfo.min_score, diff26, false);
+
+        if (majorEquiv && majorEquiv.y25 != null && cultureEquiv && cultureEquiv.y25 != null) {
+          var score25b = calculateCompositeScore(cultureEquiv.y25, majorEquiv.y25, schoolInfo.culture_ratio, schoolInfo.major_ratio);
+          var info25 = findInfoByYearAndMajor('2025');
+          if (info25) {
+            makeCard('2025', score25b, info25.min_score, score25b - info25.min_score, false);
+          } else {
+            makeCard('2025', score25b, null, null, true);
+          }
+        } else {
+          makeCard('2025', null, null, null, true);
+        }
+
+        if (majorEquiv && majorEquiv.y24 != null && cultureEquiv && cultureEquiv.y24 != null) {
+          var score24b = calculateCompositeScore(cultureEquiv.y24, majorEquiv.y24, schoolInfo.culture_ratio, schoolInfo.major_ratio);
+          var info24b = findInfoByYearAndMajor('2024');
+          if (info24b) {
+            makeCard('2024', score24b, info24b.min_score, score24b - info24b.min_score, false);
+          } else {
+            makeCard('2024', score24b, null, null, true);
+          }
+        } else {
+          makeCard('2024', null, null, null, true);
+        }
+      }
+
+      // 渲染卡片
+      var html = '<div class="score-cards-row">';
+      cards.forEach(function(c) {
+        html += '<div class="score-card">';
+        if (c.missing) {
+          html += '<div class="score-card-title">' + c.year + '年我的综合分</div>';
+          html += '<div class="score-card-missing">数据暂缺</div>';
+        } else {
+          html += '<div class="score-card-title">' + c.year + '年我的综合分</div>';
+          html += '<div class="score-card-value">' + c.score.toFixed(2) + '</div>';
+          if (c.minScore !== null && c.minScore !== undefined) {
+            html += '<div style="font-size:13px;opacity:0.9;margin-top:10px;">专业最低分：<b>' + c.minScore + '</b></div>';
+          }
+          if (c.diff !== null) {
+            var cls = c.diff >= 0 ? 'positive' : 'negative';
+            var sign = c.diff >= 0 ? '+' : '';
+            html += '<div class="score-card-diff">差距：<span class="' + cls + '">' + sign + c.diff.toFixed(2) + '</span></div>';
+          } else {
+            html += '<div class="score-card-missing">该校该年无此专业数据</div>';
+          }
+        }
+        html += '</div>';
+      });
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    // ================================================================
+    //  渲染录取专业大表（合并原"录取专业"+"录取信息及规则"）
+    //  列：科类(合并行) | 年份 | 专业(可点击) | 文化成绩比例% | 专业成绩比例% | 计划数 | 实际投档人数 | 投档最低分 | 差值
+    // ================================================================
+    function renderAdmissionTable() {
+      var container = document.getElementById('admissionTableWrap');
+      var userCat = (userScore && userScore.category) || '';
+
+      if (allYearsData.length === 0) {
+        container.innerHTML = '<div class="no-data">无录取信息</div>';
+        return;
+      }
+
+      // 筛选：只显示与用户科类兼容的数据
+      var filtered = allYearsData;
+      if (userCat) {
+        filtered = allYearsData.filter(function(s) { return categoryMatches(s.category, userCat); });
+      }
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="no-data">该校暂无「' + userCat + '」招生数据</div>';
+        return;
+      }
+
+      // 筛选：只显示完全匹配当前院校名的数据（避免模糊匹配混入分校区数据）
+      var currentSchoolName = schoolInfo.school_name;
+      filtered = filtered.filter(function(s) { return s.school_name === currentSchoolName; });
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="no-data">该校暂无「' + userCat + '」招生数据</div>';
+        return;
+      }
+
+      // 筛选：按学校层次过滤（本科只看本科数据、专科只看专科数据，避免混入另一层次的数据）
+      var isZhuanke = schoolInfo && schoolInfo.level && schoolInfo.level.indexOf('专科') !== -1;
+      filtered = filtered.filter(function(s) {
+        var sIsZhuanke = s.level && s.level.indexOf('专科') !== -1;
+        return isZhuanke === sIsZhuanke;
+      });
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="no-data">该校暂无「' + userCat + '」招生数据</div>';
+        return;
+      }
+
+      // 按 科类 排序分组（固定顺序：历史类 > 文科 > 物理类 > 理科）
+      var catOrder = ['历史类','文科','物理类','理科'];
+      filtered.sort(function(a, b) {
+        var ai = catOrder.indexOf(a.category);
+        var bi = catOrder.indexOf(b.category);
+        if (ai === -1) ai = 99;
+        if (bi === -1) bi = 99;
+        if (ai !== bi) return ai - bi;
+        return b.year - a.year; // 同科类按年份降序
+      });
+
+      // 按 科类 分组
+      var groups = [];
+      var currentGroup = null;
+      filtered.forEach(function(s) {
+        if (!currentGroup || currentGroup.cat !== s.category) {
+          currentGroup = { cat: s.category, rows: [] };
+          groups.push(currentGroup);
+        }
+        currentGroup.rows.push(s);
+      });
+
+      var html = '<table class="admission-table">';
+      // 表头（去掉固定宽度，让列根据内容自适应）
+      html += '<thead><tr>';
+      html += '<th>科类</th>';
+      html += '<th>年份</th>';
+      html += '<th>专业</th>';
+      html += '<th>综合分<br>计算公式</th>';
+      html += '<th class="num">计划数</th>';
+      html += '<th class="num">实际投档<br>人数</th>';
+      html += '<th class="num">投档最低<br>分</th>';
+      html += '<th class="num">差值</th>';
+      html += '</tr></thead><tbody>';
+
+      var userCulture = userScore.cultureScore;
+      var userMajor = userScore.majorScore;
+
+      // 预先计算各年份等效分（避免每行重复计算）
+      var majorEquiv = null, cultureEquiv = null;
+      try { majorEquiv = reverseMajor(userScore.year, userMajor); } catch(e) {}
+      try { cultureEquiv = reverseCulture(userScore.year, userCulture, userScore.category); } catch(e) {}
+
+      // 根据院校年份获取用户的等效分
+      function getEquivScore(year, type) {
+        if (year === 2025) {
+          if (type === 'major' && majorEquiv && majorEquiv.y25 != null) return majorEquiv.y25;
+          if (type === 'culture' && cultureEquiv && cultureEquiv.y25 != null) return cultureEquiv.y25;
+          return null;
+        }
+        if (year === 2024) {
+          if (type === 'major' && majorEquiv && majorEquiv.y24 != null) return majorEquiv.y24;
+          if (type === 'culture' && cultureEquiv && cultureEquiv.y24 != null) return cultureEquiv.y24;
+          return null;
+        }
+        return null;
+      }
+
+      groups.forEach(function(group) {
+        var rowspan = group.rows.length;
+
+        group.rows.forEach(function(s, ri) {
+          html += '<tr>';
+
+          // 科类列（仅每组第一行显示，rowspan）
+          if (ri === 0) {
+            html += '<td class="col-cat" rowspan="' + rowspan + '">' + escapeHtml(group.cat) + '</td>';
+          }
+
+          // 年份
+          html += '<td>' + s.year + '</td>';
+
+          // 专业（可点击切换）
+          var isCurrent = (s.major === schoolInfo.major && String(s.year) === String(schoolInfo.year));
+          var clickHandler = "switchMajor('" + s.major.replace(/'/g, "\\'") + "', " + s.year + ", '" + (s.category||'') + "')";
+          html += '<td class="col-major' + (isCurrent ? ' is-current' : '') + '" onclick="' + clickHandler + '">' + escapeHtml(s.major) + '</td>';
+
+          // 综合分计算公式（合并文化比例+专业比例）
+          var formulaName = getFormulaText(s.culture_ratio, s.major_ratio);
+          html += '<td class="num">' + escapeHtml(formulaName) + '</td>';
+
+          // 计划数
+          html += '<td class="num">' + (s.plan_count != null ? s.plan_count : '-') + '</td>';
+
+          // 实际投档人数
+          html += '<td class="num">' + (s.actual_count != null ? s.actual_count : '-') + '</td>';
+
+          // 投档最低分
+          html += '<td class="num"><b>' + (s.min_score != null ? s.min_score : '-') + '</b></td>';
+
+          // 差值（用户综合分 vs 该专业最低分）
+          if (s.culture_ratio != null && s.major_ratio != null && s.min_score != null) {
+            var mc = getEquivScore(s.year, 'major');
+            var cc = getEquivScore(s.year, 'culture');
+            if (mc != null && cc != null) {
+              var compScore = calculateCompositeScore(cc, mc, s.culture_ratio, s.major_ratio);
+              var d = compScore - s.min_score;
+              var dc = d >= 0 ? 'diff-positive' : 'diff-negative';
+              var ds = d >= 0 ? ('+' + d.toFixed(1)) : d.toFixed(1);
+              html += '<td class="num ' + dc + '">' + ds + '</td>';
+            } else {
+              html += '<td class="num diff-neutral">暂缺</td>';
+            }
+          } else {
+            html += '<td class="num diff-neutral">-</td>';
+          }
+
+          html += '</tr>';
+        });
+      });
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    // 获取当前学校使用的数据源
+    function getSchoolDataSource() {
+      var isZhuanke = schoolInfo && schoolInfo.level && schoolInfo.level.indexOf('专科') !== -1;
+      if (isZhuanke && typeof SCHOOL_DATA_ZX !== 'undefined') return SCHOOL_DATA_ZX;
+      return SCHOOL_DATA;
+    }
+
+    // ========== 切换专业 ==========
+    window.switchMajor = function(major, year, category) {
+      var target = null;
+      var ds = getSchoolDataSource();
+      var userCat = (userScore && userScore.category) || '';
+      var inputBase = (currentSchool.school_name || '').replace(/\(.*?\)/g,'').replace(/（.*?）/g,'').trim();
+      if (userCat) {
+        target = ds.find(function(s) {
+          return s.school_name === currentSchool.school_name &&
+                 s.major === major &&
+                 String(s.year) === String(year) &&
+                 categoryMatches(s.category, userCat);
+        });
+      }
+      if (!target && category) {
+        target = ds.find(function(s) {
+          return s.school_name === currentSchool.school_name &&
+                 s.major === major &&
+                 String(s.year) === String(year) &&
+                 s.category === category;
+        });
+      }
+      if (!target) {
+        target = ds.find(function(s) {
+          return s.school_name === currentSchool.school_name &&
+                 s.major === major &&
+                 String(s.year) === String(year);
+        });
+      }
+      if (!target) {
+        target = ds.find(function(s) {
+          var sBase = (s.school_name||'').replace(/\(.*?\)/g,'').replace(/（.*?）/g,'').trim();
+          return sBase === inputBase &&
+                 s.major === major &&
+                 String(s.year) === String(year);
+        });
+      }
+      if (!target && typeof getMajorGroup === 'function') {
+        var mg = getMajorGroup(major);
+        target = ds.find(function(s) {
+          var sBase = (s.school_name||'').replace(/\(.*?\)/g,'').replace(/（.*?）/g,'').trim();
+          return sBase === inputBase &&
+                 getMajorGroup(s.major) === mg &&
+                 String(s.year) === String(year);
+        });
+      }
+      if (!target) { alert('未找到该专业数据，请刷新页面后重试'); return; }
+      var obj = {
+        school_name: target.school_name,
+        major: target.major,
+        year: String(target.year),
+        type: currentSchool.type
+      };
+      if (target.category) obj.category = target.category;
+      localStorage.setItem('currentSchool', JSON.stringify(obj));
+      location.reload();
+    };
+
+    // ========== 志愿单相关 ==========
+    function checkIfAdded(schoolName, major) {
+      var list = JSON.parse(localStorage.getItem('volunteerList') || '[]');
+      return list.find(function(s) { return s.school_name === schoolName && s.major === major; });
+    }
+
+    window.addToVolunteer = function() {
+      if (!schoolInfo) return;
+      var list = JSON.parse(localStorage.getItem('volunteerList') || '[]');
+      var existing = list.find(function(s) {
+        return s.school_name === schoolInfo.school_name && s.major === schoolInfo.major;
+      });
+      if (existing) {
+        alert('该专业已添加到志愿单！');
+        return;
+      }
+      var volType = (JSON.parse(localStorage.getItem('currentSchool') || '{}')).type;
+      if (!volType) volType = localStorage.getItem('addVolunteerType') || 'reach';
+
+      // 检查总数限制
+      var totalLimit2 = 64;
+      try { var raw2 = localStorage.getItem('volunteerLimits'); if (raw2) { var p2 = JSON.parse(raw2); totalLimit2 = (p2.reach || 0) + (p2.match || 0) + (p2.safe || 0); } } catch(e) {}
+      if (list.length >= totalLimit2) {
+        alert('志愿单已满（最多' + totalLimit2 + '个）');
+        return;
+      }
+
+      // 检查分区限制
+      var savedLimits = null;
+      try { var raw = localStorage.getItem('volunteerLimits'); if (raw) savedLimits = JSON.parse(raw); } catch(e) {}
+      var limits = (savedLimits && typeof savedLimits.reach === 'number') ? savedLimits : { reach: 13, match: 32, safe: 19 };
+      var typeCounts = { reach: 0, match: 0, safe: 0 };
+      list.forEach(function(item) {
+        if (typeCounts[item.type] !== undefined) typeCounts[item.type]++;
+      });
+      if (typeCounts[volType] >= limits[volType]) {
+        var typeNames = { reach: '冲', match: '稳', safe: '保' };
+        alert(typeNames[volType] + '分区已满（最多' + limits[volType] + '个）');
+        return;
+      }
+
+      // 计算综合分和差值
+      var uScore = userScore.cultureScore && userScore.majorScore
+        ? calculateCompositeScore(userScore.cultureScore, userScore.majorScore, schoolInfo.culture_ratio, schoolInfo.major_ratio)
+        : undefined;
+      var diffVal = (uScore !== undefined && schoolInfo.min_score != null)
+        ? Math.round((uScore - schoolInfo.min_score) * 100) / 100
+        : undefined;
+      var addObj = Object.assign({}, schoolInfo, {
+        addedAt: new Date().toISOString(),
+        type: volType,
+        userScore: uScore !== undefined ? Math.round(uScore * 100) / 100 : undefined,
+        diff: diffVal
+      });
+      if (schoolInfo.category) addObj.category = schoolInfo.category;
+      list.push(addObj);
+      localStorage.setItem('volunteerList', JSON.stringify(list));
+      var btn = document.getElementById('btnAdd');
+      btn.textContent = '✅ 已添加到志愿单';
+      btn.classList.add('btn-added');
+      btn.disabled = true;
+      alert('已添加到志愿单！');
+      renderAdmissionTable(); // 刷新表格中"已添加"状态
+    };
+
+    window.goBack = function() {
+      window.location.href = 'result.html';
+    };
+
+    function escapeHtml(str) {
+      var div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // 页面加载时检查是否已添加
+    if (checkIfAdded(schoolInfo.school_name, schoolInfo.major)) {
+      var btn = document.getElementById('btnAdd');
+      btn.textContent = '✅ 已添加到志愿单';
+      btn.classList.add('btn-added');
+      btn.disabled = true;
+    }
+  })();
+  </script>
+  <div class="crafted-by" style="padding-bottom:5px;">Crafted by <span>Nemo</span></div>
+  <div style="text-align:center;font-size:12px;color:#999;letter-spacing:1px;padding:5px 0;user-select:none;pointer-events:none;">抖音ID：<span style="background:linear-gradient(90deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">64477290792</span></div>
+  <div style="text-align:center;font-size:11px;color:#ccc;padding:5px 0;">总访问量 <span id="busuanzi_value_site_pv"></span> 次 🎯</div>
+
+  <!-- 不蒜子访问统计 -->
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+</body>
+</html>

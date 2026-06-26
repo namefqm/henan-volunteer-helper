@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>我的志愿 - 河南美术志愿 v2.4</title>
+  <style>
+    * { margin:0; padding:0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #f5f6fa;
+      padding-bottom: 100px;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; padding: 20px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .btn-back {
+      background: rgba(255,255,255,0.2); border: none; color: white;
+      padding: 8px 15px; border-radius: 20px; font-size: 14px;
+      cursor: pointer; margin-bottom: 10px; display: inline-block;
+    }
+    .header h1 { font-size: 18px; display: inline; }
+    .header .subtitle { font-size: 14px; opacity: 0.9; margin-top: 5px; }
+    /* 专科/本科模式标签 */
+    .mode-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.25);
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      padding: 2px 12px;
+      border-radius: 6px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    /* 分区标签 */
+    .section-tabs { display: flex; background: white; border-bottom: 2px solid #e0e0e0; position: sticky; top: 76px; z-index: 99; }
+    .section-tab {
+      flex: 1; text-align: center; padding: 14px 5px; font-size: 14px;
+      cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.3s;
+      font-weight: 500;
+    }
+    .section-tab.active { color: #667eea; border-bottom-color: #667eea; font-weight: bold; }
+    .section-tab .count { font-size: 11px; color: #999; }
+    .section-tab.active .count { color: #667eea; }
+
+    .content { padding: 15px; }
+
+    /* 分区面板 */
+    .section-panel { display: none; }
+    .section-panel.active { display: block; }
+
+    /* 志愿卡片 */
+    .vol-card {
+      background: white; border-radius: 15px; padding: 16px 18px;
+      margin-bottom: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      display: flex; align-items: flex-start; gap: 12px;
+      transition: transform 0.2s, opacity 0.2s, box-shadow 0.2s;
+      cursor: grab;
+      position: relative;
+    }
+    .vol-card:hover { transform: translateY(-2px); }
+    .vol-card.dragging {
+      opacity: 0.3;
+      transform: scale(0.98);
+      box-shadow: none;
+    }
+    .vol-card.drag-over-top {
+      border-top: 3px solid #667eea;
+      padding-top: 13px;
+    }
+    .vol-card.drag-over-bottom {
+      border-bottom: 3px solid #667eea;
+      padding-bottom: 13px;
+    }
+
+    /* 拖动把手 —— 更明显 */
+    .drag-handle {
+      position: absolute;
+      left: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 22px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: #fff;
+      background: #c5cae9;
+      border-radius: 0 8px 8px 0;
+      cursor: grab;
+      opacity: 0.7;
+      transition: opacity 0.2s, background 0.2s;
+      user-select: none;
+      -webkit-user-select: none;
+      z-index: 2;
+    }
+    .drag-handle:hover { opacity: 1; background: #667eea; }
+    .drag-handle:active { cursor: grabbing; background: #5568d3; }
+    .vol-card:hover .drag-handle { opacity: 1; }
+
+    /* 长按/点击激活拖动时的卡片样式 */
+    .vol-card.long-press-active {
+      transform: scale(1.03) !important;
+      box-shadow: 0 8px 25px rgba(102,126,234,0.35);
+      border: 2px solid #667eea;
+      z-index: 100;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .vol-card.long-press-active .drag-handle {
+      opacity: 1;
+      background: #667eea;
+    }
+
+    /* 桌面端拖动时的浮动克隆 */
+    .drag-clone {
+      position: fixed;
+      z-index: 9999;
+      pointer-events: none;
+      opacity: 0.85;
+      box-shadow: 0 12px 35px rgba(102,126,234,0.4);
+      border-radius: 15px;
+      transform: rotate(2deg);
+      transition: none;
+    }
+
+    /* 原卡片在拖动时变淡 */
+    .vol-card.drag-src-fade {
+      opacity: 0.25;
+      transform: scale(0.97);
+      box-shadow: none;
+    }
+    .vol-index {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: bold; color: white; flex-shrink: 0;
+      margin-left: 15px;
+    }
+    /* 红黄绿圆形序号 */
+    .vol-index.reach { background: #e53935; }  /* 红 */
+    .vol-index.match { background: #f9a825; }  /* 黄 */
+    .vol-index.safe { background: #43a047; }   /* 绿 */
+
+    .vol-info { flex: 1; min-width: 0; }
+    .vol-name { font-size: 15px; font-weight: bold; color: #333; }
+    .vol-major { font-size: 13px; color: #666; margin-top: 3px; }
+    .vol-meta { font-size: 12px; color: #999; margin-top: 6px; display: flex; gap: 12px; flex-wrap: wrap; }
+
+    .btn-remove {
+      background: none; border: none; color: #f44336;
+      font-size: 18px; cursor: pointer; padding: 4px 8px; flex-shrink: 0;
+    }
+
+    /* 空状态 */
+    .empty-state { text-align: center; padding: 40px 20px; color: #999; }
+    .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; margin-bottom: 16px; }
+
+    /* 拖动提示 */
+    .drag-hint {
+      text-align: center; font-size: 12px; color: #999;
+      padding: 8px; margin-bottom: 8px;
+      background: #f9f9f9; border-radius: 8px;
+      display: none;
+    }
+    .drag-hint.show { display: block; }
+
+    /* 添加按钮 */
+    .btn-add-section {
+      display: block; width: 100%; padding: 12px;
+      background: #f0f2f5; border: 2px dashed #c0c4cc; border-radius: 12px;
+      color: #667eea; font-size: 14px; font-weight: 500;
+      cursor: pointer; transition: all 0.2s; margin-bottom: 12px;
+    }
+    .btn-add-section:hover { background: #e8eaf6; border-color: #667eea; }
+
+    /* 底部栏 */
+    .bottom-bar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: white; padding: 12px 20px;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 1000;
+      display: flex; gap: 12px;
+    }
+    .btn-clear {
+      flex: 1; padding: 12px; background: #f44336; color: white;
+      border: none; border-radius: 10px; font-size: 15px; font-weight: bold;
+      cursor: pointer;
+    }
+    .btn-clear:disabled { background: #ccc; cursor: not-allowed; }
+    .btn-go-match {
+      flex: 1; padding: 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; border: none; border-radius: 10px;
+      font-size: 15px; font-weight: bold; cursor: pointer; text-align: center;
+      text-decoration: none; display: block; line-height: 20px;
+    }
+    .btn-export-bottom {
+      flex: 1; padding: 12px;
+      background: linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
+      color: white; border: none; border-radius: 10px;
+      font-size: 15px; font-weight: bold; cursor: pointer;
+    }
+
+    /* 总数提示 */
+    .total-hint {
+      text-align: center; font-size: 13px; color: #999;
+      padding: 10px; margin-bottom: 8px;
+    }
+    .total-hint .num { font-weight: bold; color: #667eea; }
+
+    /* 分数对比 */
+    .vol-score-compare {
+      margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 6px;
+      font-size: 12px; line-height: 1.8;
+    }
+    .diff-positive { color: #4caf50; font-weight: bold; }
+    .diff-negative { color: #f44336; font-weight: bold; }
+
+    /* 导出按钮 */
+    .btn-export {
+      background: rgba(255,255,255,0.2); border: none; color: white;
+      padding: 8px 15px; border-radius: 20px; font-size: 14px;
+      cursor: pointer; margin-bottom: 10px; display: inline-block; float: right;
+    }
+    .btn-export:hover { background: rgba(255,255,255,0.35); }
+
+    /* ========== 自定义志愿数量设置 ========== */
+    .btn-limits-settings {
+      background: rgba(255,255,255,0.2); border: none; color: white;
+      padding: 8px 12px; border-radius: 20px; font-size: 14px;
+      cursor: pointer; display: inline-block; float: right;
+      margin-bottom: 10px; margin-left: 6px;
+    }
+    .btn-limits-settings:hover { background: rgba(255,255,255,0.35); }
+
+    .limits-modal {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5); z-index: 2000;
+      align-items: center; justify-content: center;
+    }
+    .limits-modal.active { display: flex; }
+    .limits-modal-box {
+      background: white; border-radius: 16px; padding: 28px 24px 24px;
+      width: 92%; max-width: 360px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .limits-modal-title {
+      font-size: 17px; font-weight: 700; color: #333;
+      margin-bottom: 18px; text-align: center;
+    }
+    .limits-modal-field { margin-bottom: 16px; }
+    .limits-modal-field label {
+      display: block; font-size: 13px; color: #555;
+      margin-bottom: 5px; font-weight: 500;
+    }
+    .limits-modal-field input[type="number"] {
+      width: 100%; padding: 9px 11px; border: 2px solid #e0e0e0;
+      border-radius: 8px; font-size: 15px; transition: border-color 0.3s;
+      background: #fafafa;
+    }
+    .limits-modal-field input[type="number"]:focus {
+      outline: none; border-color: #667eea; background: white;
+    }
+    .limits-modal-actions { display: flex; gap: 10px; margin-top: 22px; }
+    .limits-modal-actions button {
+      flex: 1; padding: 11px 0; border: none; border-radius: 10px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    .btn-limits-save {
+      background: linear-gradient(135deg, #667eea, #764ba2); color: white;
+    }
+    .btn-limits-cancel { background: #f0f0f0; color: #666; }
+    .limits-modal-total {
+      text-align: center; font-size: 13px; color: #667eea;
+      margin-top: 8px; font-weight: 500;
+    }
+
+    /* ========== 捐赠弹窗 ========== */
+    .donate-modal {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.55); z-index: 3000;
+      align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .donate-modal.active { display: flex; }
+    .donate-modal-box {
+      background: white; border-radius: 18px; padding: 30px 24px 22px;
+      width: 100%; max-width: 380px;
+      box-shadow: 0 25px 80px rgba(0,0,0,0.35);
+      text-align: center;
+      animation: donateFadeIn 0.3s ease;
+    }
+    @keyframes donateFadeIn {
+      from { transform: scale(0.85) translateY(20px); opacity: 0; }
+      to { transform: scale(1) translateY(0); opacity: 1; }
+    }
+    .donate-modal-title {
+      font-size: 20px; font-weight: 700; color: #333;
+      margin-bottom: 16px;
+    }
+    .donate-modal-image {
+      margin: 0 auto 16px;
+      max-width: 280px;
+    }
+    .donate-modal-image img {
+      width: 100%; height: auto;
+      border-radius: 12px;
+      display: block;
+    }
+    .donate-modal-desc {
+      font-size: 13px; color: #888;
+      margin-bottom: 18px; line-height: 1.6;
+    }
+    .donate-modal-stats {
+      font-size: 13px; color: #667eea; font-weight: 600;
+      margin-bottom: 16px; text-align: center;
+    }
+    .donate-modal-actions { display: flex; gap: 10px; }
+    .donate-modal-actions button {
+      flex: 1; padding: 12px 0; border: none; border-radius: 10px;
+      font-size: 15px; font-weight: 600; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-donate-skip {
+      background: #f0f0f0; color: #888;
+    }
+    .btn-donate-skip:hover { background: #e0e0e0; }
+    .btn-donate-confirm {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+    }
+    .btn-donate-confirm:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(102,126,234,0.4);
+    }
+
+    /* 署名 */
+    .crafted-by {
+      text-align: center;
+      padding: 18px 0 24px;
+      font-size: 12px;
+      color: #bbb;
+      letter-spacing: 1px;
+      user-select: none;
+    }
+    .crafted-by span {
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <button class="btn-back" onclick="goBack()">← 返回</button>
+    <a class="btn-export" href="index.html">重新匹配</a>
+    <button class="btn-limits-settings" onclick="openLimitsModal()">⚙️</button>
+    <h1>📋 我的志愿单</h1>
+    <div class="mode-badge" id="modeBadge">本科</div>
+    <div class="subtitle">共 <span id="totalCount">0</span> / <span id="totalLimitDisplay">64</span> 个</div>
+  </div>
+
+  <!-- 分区标签 -->
+  <div class="section-tabs">
+    <div class="section-tab active" data-section="reach" onclick="switchSection('reach')">
+      冲 <span class="count">(<span id="countReach">0</span>/<span id="limitReach">13</span>)</span>
+    </div>
+    <div class="section-tab" data-section="match" onclick="switchSection('match')">
+      稳 <span class="count">(<span id="countMatch">0</span>/<span id="limitMatch">32</span>)</span>
+    </div>
+    <div class="section-tab" data-section="safe" onclick="switchSection('safe')">
+      保 <span class="count">(<span id="countSafe">0</span>/<span id="limitSafe">19</span>)</span>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- 冲 -->
+    <div class="section-panel active" id="panel-reach">
+      <div class="total-hint" id="hintReach">冲：建议综合分略高于自己</div>
+      <div class="drag-hint" id="dragHint-reach">💡 拖动卡片可调整志愿顺序</div>
+      <button class="btn-add-section" onclick="goToMatch('reach')">＋ 添加冲志愿</button>
+      <div id="list-reach"></div>
+    </div>
+    <!-- 稳 -->
+    <div class="section-panel" id="panel-match">
+      <div class="total-hint" id="hintMatch">稳：建议综合分与自己相当</div>
+      <div class="drag-hint" id="dragHint-match">💡 拖动卡片可调整志愿顺序</div>
+      <button class="btn-add-section" onclick="goToMatch('match')">＋ 添加稳志愿</button>
+      <div id="list-match"></div>
+    </div>
+    <!-- 保 -->
+    <div class="section-panel" id="panel-safe">
+      <div class="total-hint" id="hintSafe">保：建议综合分低于自己</div>
+      <div class="drag-hint" id="dragHint-safe">💡 拖动卡片可调整志愿顺序</div>
+      <button class="btn-add-section" onclick="goToMatch('safe')">＋ 添加保志愿</button>
+      <div id="list-safe"></div>
+    </div>
+  </div>
+
+  <!-- 自定义冲稳保数量弹窗 -->
+  <div class="limits-modal" id="limitsModal">
+    <div class="limits-modal-box">
+      <div class="limits-modal-title">⚙️ 自定义冲稳保数量</div>
+
+      <div class="limits-modal-field">
+        <label>🔴 冲刺（数量）</label>
+        <input type="number" id="settingReach" min="0" max="64" step="1" placeholder="13">
+      </div>
+
+      <div class="limits-modal-field">
+        <label>🟡 稳妥（数量）</label>
+        <input type="number" id="settingMatch" min="0" max="64" step="1" placeholder="32">
+      </div>
+
+      <div class="limits-modal-field">
+        <label>🟢 保底（数量）</label>
+        <input type="number" id="settingSafe" min="0" max="64" step="1" placeholder="19">
+      </div>
+
+      <div class="limits-modal-total" id="limitsModalTotal">总计：64 个</div>
+
+      <div class="limits-modal-actions">
+        <button class="btn-limits-cancel" type="button" onclick="closeLimitsModal()">取消</button>
+        <button class="btn-limits-save" type="button" onclick="saveLimits()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 捐赠弹窗 -->
+  <div class="donate-modal" id="donateModal">
+    <div class="donate-modal-box">
+      <div class="donate-modal-title">请老哥喝杯冰阔乐吧 🥤</div>
+      <div class="donate-modal-image">
+        <img src="static/donate.jpg" alt="打赏" onerror="this.alt='感谢打赏!'">
+      </div>
+      <div class="donate-modal-desc">如果这个工具帮到了你，欢迎打赏支持一下 ~</div>
+      <div class="donate-modal-stats" id="exportStats">📊 已有 <span id="exportCountDisplay">0</span> 人导出PDF</div>
+      <div class="donate-modal-actions">
+        <button class="btn-donate-skip" onclick="closeDonateModal()">下次一定</button>
+        <button class="btn-donate-confirm" onclick="confirmExport()">已支持，导出PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-bar" id="bottomBar">
+    <button class="btn-clear" onclick="clearAll()">清空志愿单</button>
+    <button class="btn-export-bottom" onclick="exportPDF()">📄 导出PDF</button>
+  </div>
+
+  <!-- jsPDF + html2canvas CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- 院校数据（向后兼容：补全 level / culture_ratio / major_ratio） -->
+  <script src="static/data.js"></script>
+
+  <script>
+    // 调试信息
+    console.log('=== 志愿单页面加载 ===');
+    // 页面加载确认（如果没看到这条，说明页面没加载完）
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('✅ DOM 已加载');
+    });
+
+    const DEFAULT_LIMITS = { reach: 13, match: 32, safe: 19 };
+    const LIMITS_KEY = 'volunteerLimits';
+
+    function getVolunteerLimits() {
+      try {
+        var saved = localStorage.getItem(LIMITS_KEY);
+        if (saved) {
+          var parsed = JSON.parse(saved);
+          if (typeof parsed.reach === 'number' && typeof parsed.match === 'number' && typeof parsed.safe === 'number') {
+            return parsed;
+          }
+        }
+      } catch(e) {}
+      return { reach: DEFAULT_LIMITS.reach, match: DEFAULT_LIMITS.match, safe: DEFAULT_LIMITS.safe };
+    }
+
+    function getTotalLimit() {
+      var limits = getVolunteerLimits();
+      return limits.reach + limits.match + limits.safe;
+    }
+
+    let volunteerList = [];
+    let userScore = {};
+
+    // 拖动排序状态（点击/触摸把手立即激活）
+    let dragState = {
+      isDragging: false,        // 是否已激活拖动模式
+      pointerType: null,         // 'mouse' | 'touch'
+      dragSection: null,
+      dragFromIndex: -1,
+      dragElement: null,          // 被拖动的原始卡片 DOM
+      dragClone: null,           // 浮动克隆 DOM
+      cloneOffsetX: 0,          // 手指/鼠标相对于卡片左上角的偏移
+      cloneOffsetY: 0,
+    };
+
+    init();
+
+    // 计算志愿的全局序号（按设定的志愿数量分配序号）
+    function getGlobalIndex(volunteer, target) {
+      // target 在 volunteer 数组中的索引
+      var realIdx = volunteer.indexOf(target);
+      if (realIdx === -1) return 0;
+      // 冲的索引：在它之前有多少个冲
+      // 稳的索引：冲的总数 + 在它之前有多少个稳
+      // 保的索引：冲的总数 + 稳的总数 + 在它之前有多少个保
+      var type = target.type || 'reach';
+      var beforeSame = 0;
+      for (var i = 0; i < realIdx; i++) {
+        if ((volunteer[i].type || 'reach') === type) beforeSame++;
+      }
+      var offset = 0;
+      if (type === 'match') offset = volunteer.filter(function(s){ return (s.type||'reach')==='reach'; }).length;
+      if (type === 'safe') offset = volunteer.filter(function(s){ return (s.type||'reach')==='reach' || (s.type||'reach')==='match'; }).length;
+      return offset + beforeSame + 1;
+    }
+
+    function init() {
+      console.log('开始初始化志愿单页面...');
+
+      // 读取模式并更新头部标签
+      try {
+        var mode = (JSON.parse(localStorage.getItem('userScore') || '{}')).mode || 'bk';
+        document.getElementById('modeBadge').textContent = mode === 'zk' ? '专科' : '本科';
+      } catch(e) {}
+
+      // 读取志愿单
+      const rawVolunteer = localStorage.getItem('volunteerList');
+      console.log('localStorage中的volunteerList:', rawVolunteer);
+
+      try {
+        volunteerList = JSON.parse(rawVolunteer || '[]');
+        console.log('解析后的volunteerList:', volunteerList);
+        console.log('志愿数量:', volunteerList.length);
+      } catch(e) {
+        console.error('解析volunteerList失败:', e);
+        volunteerList = [];
+      }
+
+      // 读取用户分数
+      try {
+        userScore = JSON.parse(localStorage.getItem('userScore') || '{}');
+        console.log('用户分数:', userScore);
+      } catch(e) {
+        console.error('解析userScore失败:', e);
+        userScore = {};
+      }
+
+      // 兼容旧数据（没有 type 字段的，默认为 reach）
+      let needSave = false;
+      volunteerList.forEach(s => {
+        if (!s.type) {
+          s.type = 'reach';
+          needSave = true;
+          console.log('补充type字段:', s.school_name);
+        }
+        // 兼容旧数据：缺少 level / culture_ratio / major_ratio 字段时，从 SCHOOL_DATA 补全
+        if (!s.level || s.culture_ratio === undefined || s.major_ratio === undefined) {
+          if (typeof SCHOOL_DATA !== 'undefined' && SCHOOL_DATA && SCHOOL_DATA.length > 0) {
+            var found = SCHOOL_DATA.find(function(d) {
+              return d.school_name === s.school_name && d.major === s.major && d.year === s.year;
+            });
+            if (found) {
+              if (!s.level) { s.level = found.level || ''; needSave = true; }
+              if (s.culture_ratio === undefined) { s.culture_ratio = found.culture_ratio; needSave = true; }
+              if (s.major_ratio === undefined) { s.major_ratio = found.major_ratio; needSave = true; }
+            }
+          }
+        }
+      });
+
+      // 如果有修改，保存
+      if (needSave) {
+        localStorage.setItem('volunteerList', JSON.stringify(volunteerList));
+      }
+
+      console.log('初始化完成，开始渲染...');
+      renderAll();
+    }
+
+    // 切换分区
+    function switchSection(section) {
+      document.querySelectorAll('.section-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.section-panel').forEach(p => p.classList.remove('active'));
+      document.querySelector('.section-tab[data-section="' + section + '"]').classList.add('active');
+      document.getElementById('panel-' + section).classList.add('active');
+    }
+
+    // 渲染全部
+    function renderAll() {
+      console.log('renderAll被调用，志愿数量:', volunteerList.length);
+      // 更新动态显示数值
+      var limits = getVolunteerLimits();
+      var totalLimit = limits.reach + limits.match + limits.safe;
+      document.getElementById('totalLimitDisplay').textContent = totalLimit;
+      document.getElementById('limitReach').textContent = limits.reach;
+      document.getElementById('limitMatch').textContent = limits.match;
+      document.getElementById('limitSafe').textContent = limits.safe;
+
+      // 更新分区提示中的位置范围
+      var reachEnd = limits.reach;
+      var matchStart = reachEnd + 1;
+      var matchEnd = reachEnd + limits.match;
+      var safeStart = matchEnd + 1;
+      var safeEnd = matchEnd + limits.safe;
+      document.getElementById('hintReach').textContent = '冲：建议放在前 ' + (limits.reach > 0 ? '1-' + reachEnd : '0') + ' 位，综合分略高于自己';
+      document.getElementById('hintMatch').textContent = '稳：建议放在第 ' + (limits.match > 0 ? matchStart + '-' + matchEnd : '无') + ' 位，综合分与自己相当';
+      document.getElementById('hintSafe').textContent = '保：建议放在第 ' + (limits.safe > 0 ? safeStart + '-' + safeEnd : '无') + ' 位，综合分低于自己';
+
+      ['reach','match','safe'].forEach(function(type) {
+        renderSection(type);
+      });
+      updateCounts();
+      console.log('渲染完成');
+    }
+
+    // 获取综合分计算规则名称
+    // 计算公式：综合分 = (文化课成绩 × culture_ratio + 专业课成绩 × major_ratio) / 100
+    // 共有 5 种组合：
+    //   100,0   → 纯文化分
+    //   80,50   → 文八专二
+    //   70,75   → 文七专三
+    //   60,100  → 文六专四
+    //   50,125  → 文五专五
+    function getRuleName(cultureRatio, majorRatio) {
+      if (cultureRatio === 100 && majorRatio === 0) return '纯文化分';
+      if (cultureRatio === 80 && majorRatio === 50) return '文八专二';
+      if (cultureRatio === 70 && majorRatio === 75) return '文七专三';
+      if (cultureRatio === 60 && majorRatio === 100) return '文六专四';
+      if (cultureRatio === 50 && majorRatio === 125) return '文五专五';
+      return '其他(culture:' + cultureRatio + ' major:' + majorRatio + ')';
+    }
+
+    // 渲染单个分区
+    function renderSection(type) {
+      var list = volunteerList.filter(s => s.type === type);
+      var container = document.getElementById('list-' + type);
+      var labels = { reach: '冲', match: '稳', safe: '保' };
+
+      console.log('渲染分区:', type, '数量:', list.length);
+
+      if (list.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>' + labels[type] + '区间暂无志愿</p></div>';
+        document.getElementById('dragHint-' + type).classList.remove('show');
+        return;
+      }
+
+      // 显示拖动提示
+      if (list.length > 1) {
+        document.getElementById('dragHint-' + type).classList.add('show');
+      } else {
+        document.getElementById('dragHint-' + type).classList.remove('show');
+      }
+
+      // 计算全局序号（已在 getGlobalIndex 中统一处理，此处不再需要 globalIdx 变量）
+
+      container.innerHTML = list.map(function(school, idx) {
+        var cls = type; // reach/match/safe
+        var idxDisplay = getGlobalIndex(volunteerList, school);
+
+        // 计算差值的显示样式
+        var diffHtml = '';
+        if (school.diff !== undefined && school.userScore !== undefined) {
+          var diffClass = school.diff >= 0 ? 'diff-positive' : 'diff-negative';
+          var diffText = school.diff >= 0 ? '+' + school.diff.toFixed(2) : school.diff.toFixed(2);
+
+          diffHtml = '<div class="vol-score-compare">' +
+            '<span style="color: #667eea; font-weight: bold;">我的综合分：' + school.userScore.toFixed(2) + '</span>' +
+            '<span style="margin: 0 5px;">|</span>' +
+            '<span>院校最低分：' + (school.min_score !== undefined ? school.min_score : '未知') + '</span>' +
+            '<br>' +
+            '<span class="' + diffClass + '">差距：' + diffText + ' 分</span>' +
+            '</div>';
+        }
+
+        // 获取当前志愿在 volunteerList 中的真实索引（用于删除）
+        var realIndex = volunteerList.indexOf(school);
+
+        // 计算公式名称
+        var ruleName = getRuleName(school.culture_ratio, school.major_ratio);
+
+        return '<div class="vol-card" data-index="' + realIndex + '" data-section="' + type + '" data-pos="' + idx + '">' +
+          '<div class="drag-handle">⋮</div>' +
+          '<div class="vol-index ' + cls + '">' + idxDisplay + '</div>' +
+          '<div class="vol-info">' +
+            '<div class="vol-name">' + (school.school_name || '未知院校') + ' <span style="font-weight:normal; color:#666;">' + (school.major || '未知专业') + '（' + (school.year || '?') + '年）</span></div>' +
+            '<div class="vol-meta">' +
+              '<span>📍 ' + (school.province || '未知') + '</span>' +
+              '<span>🏫 ' + (school.level || '未知') + '</span>' +
+              '<span>🧮 ' + ruleName + '</span>' +
+            '</div>' +
+            diffHtml +
+          '</div>' +
+          '<button class="btn-remove" onclick="event.stopPropagation(); removeVolunteer(' + realIndex + ')" title="移除">×</button>' +
+        '</div>';
+      }).join('');
+
+      // 绑定拖动事件
+      bindDragEvents(container, type);
+    }
+
+    // =====================================================
+    // 长按拖动排序系统（防止误触）
+    // 逻辑：鼠标/触摸按下 500ms 后才激活拖动模式
+    //        500ms 内移动/松开则取消，不干扰正常滑动和点击
+    // =====================================================
+
+    // 绑定事件
+    // 桌面端：在把手（⋮）上 mousedown 立即激活拖动（无需长按）
+    // 移动端：在卡片上 touchstart 长按 500ms 才激活（防止滑动时误触）
+    // =====================================================
+    // 拖动排序系统
+    // 桌面端：鼠标点击把手（⋮）立即拖动
+    // 移动端：触摸把手（⋮）立即拖动
+    // =====================================================
+
+    // 绑定拖动事件
+    function bindDragEvents(container, section) {
+      const cards = container.querySelectorAll('.vol-card');
+      cards.forEach(card => {
+        const handle = card.querySelector('.drag-handle');
+        if (!handle) return;
+
+        // 桌面端：mousedown 在把手上立即激活拖动
+        handle.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          startDrag(card, 'mouse', e.clientX, e.clientY);
+        });
+
+        // 移动端：touchstart 在把手上立即激活拖动
+        handle.addEventListener('touchstart', function(e) {
+          if (e.target.closest('.btn-remove')) return;
+          e.preventDefault(); // 阻止卡片点击
+          const touch = e.touches[0];
+          startDrag(card, 'touch', touch.clientX, touch.clientY);
+        }, { passive: false });
+
+        // 移动端：防止把手区域外的触摸触发页面滚动
+        // （不需要额外处理，因为只有把手会触发 startDrag）
+      });
+    }
+
+    // 开始拖动
+    function startDrag(card, pointerType, startX, startY) {
+      if (dragState.isDragging) return; // 防止重复触发
+      dragState.isDragging = true;
+      dragState.pointerType = pointerType;
+      dragState.dragElement = card;
+      dragState.dragFromIndex = parseInt(card.dataset.index);
+      dragState.dragSection = card.dataset.section;
+
+      // 视觉反馈：卡片高亮
+      card.classList.add('long-press-active');
+
+      // 创建浮动克隆
+      var clone = card.cloneNode(true);
+      clone.classList.add('drag-clone');
+      clone.style.width = card.offsetWidth + 'px';
+      clone.style.height = card.offsetHeight + 'px';
+      document.body.appendChild(clone);
+      dragState.dragClone = clone;
+
+      // 计算偏移（鼠标/手指相对于卡片左上角）
+      var rect = card.getBoundingClientRect();
+      dragState.cloneOffsetX = startX - rect.left;
+      dragState.cloneOffsetY = startY - rect.top;
+      clone.style.left = (startX - dragState.cloneOffsetX) + 'px';
+      clone.style.top = (startY - dragState.cloneOffsetY) + 'px';
+
+      // 原卡片变淡
+      card.classList.add('drag-src-fade');
+
+      // 绑定 document 级移动/结束事件
+      if (pointerType === 'mouse') {
+        document.addEventListener('mousemove', onDragMove);
+        document.addEventListener('mouseup', onDragEnd);
+      } else {
+        document.addEventListener('touchmove', onTouchDragMove, { passive: false });
+        document.addEventListener('touchend', onTouchDragEnd);
+        document.addEventListener('touchcancel', onTouchDragEnd);
+      }
+
+      // 初始高亮插入位置
+      highlightInsertPosition(startX, startY);
+    }
+
+    // 桌面端拖动过程
+    function onDragMove(e) {
+      if (!dragState.isDragging) return;
+      e.preventDefault();
+      // 克隆跟随鼠标
+      if (dragState.dragClone) {
+        dragState.dragClone.style.left = (e.clientX - dragState.cloneOffsetX) + 'px';
+        dragState.dragClone.style.top = (e.clientY - dragState.cloneOffsetY) + 'px';
+      }
+      highlightInsertPosition(e.clientX, e.clientY);
+    }
+
+    // 桌面端拖动结束
+    function onDragEnd(e) {
+      if (!dragState.isDragging) return;
+      cleanupDrag();
+      finishDragReorder();
+    }
+
+    // 移动端拖动过程
+    function onTouchDragMove(e) {
+      if (!dragState.isDragging) return;
+      e.preventDefault(); // 阻止页面滚动
+      const touch = e.touches[0];
+      if (dragState.dragClone) {
+        dragState.dragClone.style.left = (touch.clientX - dragState.cloneOffsetX) + 'px';
+        dragState.dragClone.style.top = (touch.clientY - dragState.cloneOffsetY) + 'px';
+      }
+      highlightInsertPosition(touch.clientX, touch.clientY);
+    }
+
+    // 移动端拖动结束
+    function onTouchDragEnd(e) {
+      if (!dragState.isDragging) return;
+      cleanupDrag();
+      finishDragReorder();
+    }
+
+    // 清除拖动状态和事件监听
+    function cleanupDrag() {
+      if (dragState.pointerType === 'mouse') {
+        document.removeEventListener('mousemove', onDragMove);
+        document.removeEventListener('mouseup', onDragEnd);
+      } else {
+        document.removeEventListener('touchmove', onTouchDragMove);
+        document.removeEventListener('touchend', onTouchDragEnd);
+        document.removeEventListener('touchcancel', onTouchDragEnd);
+      }
+    }
+
+    // 高亮插入位置
+    function highlightInsertPosition(clientX, clientY) {
+      // 清除所有高亮
+      document.querySelectorAll('.vol-card').forEach(c => {
+        c.classList.remove('drag-over-top', 'drag-over-bottom');
+      });
+
+      const cards = document.querySelectorAll('.vol-card[data-section="' + dragState.dragSection + '"]');
+      let targetCard = null;
+      let insertAfter = false;
+
+      cards.forEach(c => {
+        if (parseInt(c.dataset.index) === dragState.dragFromIndex) return;
+        const rect = c.getBoundingClientRect();
+        if (clientY >= rect.top && clientY <= rect.bottom) {
+          targetCard = c;
+          const midY = rect.top + rect.height / 2;
+          insertAfter = clientY > midY;
+        }
+      });
+
+      if (targetCard) {
+        if (insertAfter) {
+          targetCard.classList.add('drag-over-bottom');
+        } else {
+          targetCard.classList.add('drag-over-top');
+        }
+      }
+    }
+
+    // 执行重新排序
+    // 执行重新排序
+    function doReorder(fromIndex, toIndex) {
+      if (fromIndex === toIndex || toIndex < 0 || fromIndex < 0) return;
+
+      const item = volunteerList.splice(fromIndex, 1)[0];
+      if (fromIndex < toIndex) toIndex -= 1;
+      volunteerList.splice(toIndex, 0, item);
+      localStorage.setItem('volunteerList', JSON.stringify(volunteerList));
+
+      renderAll();
+      showToast('已调整志愿顺序');
+    }
+
+    function finishDragReorder() {
+      // 找到目标位置
+      const cards = document.querySelectorAll('.vol-card[data-section="' + dragState.dragSection + '"]');
+      let toIndex = -1;
+
+      for (let i = 0; i < cards.length; i++) {
+        const c = cards[i];
+        if (c.classList.contains('drag-over-top')) {
+          toIndex = parseInt(c.dataset.index);
+          break;
+        }
+        if (c.classList.contains('drag-over-bottom')) {
+          toIndex = parseInt(c.dataset.index) + 1;
+          break;
+        }
+      }
+
+      // 清除克隆和样式
+      if (dragState.dragClone) {
+        dragState.dragClone.remove();
+        dragState.dragClone = null;
+      }
+      document.querySelectorAll('.vol-card').forEach(c => {
+        c.classList.remove('long-press-active', 'drag-src-fade', 'drag-over-top', 'drag-over-bottom');
+      });
+
+      // 执行排序
+      if (toIndex >= 0 && toIndex !== dragState.dragFromIndex) {
+        doReorder(dragState.dragFromIndex, toIndex);
+      } else {
+        renderAll();
+      }
+
+      // 重置状态
+      dragState.isDragging = false;
+      dragState.dragElement = null;
+      dragState.dragSection = null;
+      dragState.dragFromIndex = -1;
+    }
+
+
+    function updateCounts() {
+      document.getElementById('totalCount').textContent = volunteerList.length;
+      ['reach','match','safe'].forEach(function(type) {
+        var c = volunteerList.filter(s => s.type === type).length;
+        document.getElementById('count' + type.charAt(0).toUpperCase() + type.slice(1)).textContent = c;
+      });
+    }
+
+    // 移除
+    function removeVolunteer(index) {
+      if (!confirm('确定要从志愿单中移除吗？')) return;
+      volunteerList.splice(index, 1);
+      localStorage.setItem('volunteerList', JSON.stringify(volunteerList));
+      renderAll();
+    }
+
+    // 清空
+    function clearAll() {
+      if (!confirm('确定要清空整个志愿单吗？此操作不可撤销。')) return;
+      volunteerList = [];
+      localStorage.setItem('volunteerList', JSON.stringify(volunteerList));
+      renderAll();
+    }
+
+    // 去匹配页（指定分区）
+    function goToMatch(type) {
+      var totalLimit = getTotalLimit();
+      // 检查是否已满
+      if (volunteerList.length >= totalLimit) {
+        alert('志愿单已满 ' + totalLimit + ' 个！');
+        return;
+      }
+      // 传递目标分区到 result 页
+      localStorage.setItem('addVolunteerType', type);
+      window.location.href = 'result.html';
+    }
+
+    // 返回
+    function goBack() {
+      window.location.href = 'result.html';
+    }
+
+    // 显示提示
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.textContent = message;
+      toast.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.8);color:white;padding:10px 20px;border-radius:8px;z-index:9999;font-size:14px;';
+      document.body.appendChild(toast);
+      setTimeout(function() {
+        toast.remove();
+      }, 1500);
+    }
+
+    // ========== 自定义冲稳保数量 ==========
+    function openLimitsModal() {
+      var limits = getVolunteerLimits();
+      document.getElementById('settingReach').value = limits.reach;
+      document.getElementById('settingMatch').value = limits.match;
+      document.getElementById('settingSafe').value = limits.safe;
+      updateLimitsTotalPreview();
+      document.getElementById('limitsModal').classList.add('active');
+    }
+
+    function closeLimitsModal() {
+      document.getElementById('limitsModal').classList.remove('active');
+    }
+
+    function updateLimitsTotalPreview() {
+      var r = parseInt(document.getElementById('settingReach').value) || 0;
+      var m = parseInt(document.getElementById('settingMatch').value) || 0;
+      var s = parseInt(document.getElementById('settingSafe').value) || 0;
+      document.getElementById('limitsModalTotal').textContent = '总计：' + (r + m + s) + ' 个';
+    }
+
+    // 输入框变化时实时更新总计预览
+    ['settingReach','settingMatch','settingSafe'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('input', updateLimitsTotalPreview);
+      }
+    });
+
+    function saveLimits() {
+      var r = parseInt(document.getElementById('settingReach').value);
+      var m = parseInt(document.getElementById('settingMatch').value);
+      var s = parseInt(document.getElementById('settingSafe').value);
+      if (isNaN(r) || isNaN(m) || isNaN(s) || r < 0 || m < 0 || s < 0) {
+        alert('请输入有效的正数'); return;
+      }
+      if (r + m + s > 64) {
+        alert('冲稳保总数不能超过 64 个！当前合计：' + (r + m + s)); return;
+      }
+
+      // 如果某分区数量减少，自动删除该分区末尾多出的志愿
+      var changed = false;
+      var newList = [];
+      ['reach','match','safe'].forEach(function(type) {
+        var newLimit = { reach: r, match: m, safe: s }[type];
+        var typeItems = volunteerList.filter(function(v) { return v.type === type; });
+        // 保留前 newLimit 个
+        typeItems.slice(0, newLimit).forEach(function(v) { newList.push(v); });
+        if (typeItems.length > newLimit) changed = true;
+      });
+      // 保留其他 type（理论上不应有，但兼容处理）
+      volunteerList.forEach(function(v) {
+        if (['reach','match','safe'].indexOf(v.type) === -1) {
+          newList.push(v);
+        }
+      });
+      if (changed) {
+        volunteerList = newList;
+        localStorage.setItem('volunteerList', JSON.stringify(volunteerList));
+      }
+
+      localStorage.setItem(LIMITS_KEY, JSON.stringify({ reach: r, match: m, safe: s }));
+      closeLimitsModal();
+      renderAll();
+      if (changed) {
+        showToast('已更新设置，超出部分已自动删除');
+      } else {
+        showToast('已更新志愿数量设置');
+      }
+    }
+
+    // 点击遮罩关闭弹窗
+    document.addEventListener('click', function(e) {
+      if (e.target && e.target.id === 'limitsModal') {
+        closeLimitsModal();
+      }
+      if (e.target && e.target.id === 'donateModal') {
+        closeDonateModal();
+      }
+    });
+    // ========== 结束自定义冲稳保数量 ==========
+
+    // ========== 导出PDF（捐赠弹窗） ==========
+    // 动态加载 CDN 库
+    function loadScript(src) {
+      return new Promise(function(resolve, reject) {
+        if (document.querySelector('script[src="' + src + '"]')) { resolve(); return; }
+        var s = document.createElement('script');
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+
+    // 点击导出按钮 → 显示捐赠弹窗
+    function exportPDF() {
+      // 加载并显示导出计数
+      var count = parseInt(localStorage.getItem('exportPdfCount') || '0');
+      document.getElementById('exportCountDisplay').textContent = count;
+      document.getElementById('donateModal').classList.add('active');
+    }
+
+    // 关闭捐赠弹窗
+    function closeDonateModal() {
+      document.getElementById('donateModal').classList.remove('active');
+    }
+
+    // 点击"已支持"后真正导出PDF
+    async function confirmExport() {
+      // 递增导出计数并显示
+      var currentCount = parseInt(localStorage.getItem('exportPdfCount') || '0');
+      currentCount++;
+      localStorage.setItem('exportPdfCount', String(currentCount));
+      document.getElementById('exportCountDisplay').textContent = currentCount;
+      closeDonateModal();
+      showToast('正在准备PDF导出...');
+
+      try {
+        // 确保库已加载（页面底部 script 标签可能尚未完成加载）
+        if (typeof html2canvas !== 'function') {
+          await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+        }
+        if (!window.jspdf) {
+          await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+        }
+
+        var jsPDF = window.jspdf.jsPDF;
+        if (!jsPDF) { alert('PDF库加载失败，请检查网络连接后重试'); return; }
+
+        // 构建PDF内容（临时DOM）
+        var wrap = document.createElement('div');
+        wrap.style.cssText = 'position:fixed;top:-99999px;left:0;width:794px;background:white;font-family:Arial,"Microsoft YaHei",sans-serif;color:#333;line-height:1.6;';
+        wrap.innerHTML = buildPdfHtml();
+        document.body.appendChild(wrap);
+
+        var canvas = await html2canvas(wrap, { scale: 2, useCORS: true, logging: false });
+        document.body.removeChild(wrap);
+
+        var imgData = canvas.toDataURL('image/png');
+        var pdf = new jsPDF('p', 'mm', 'a4');
+        var pw = pdf.internal.pageSize.getWidth();   // 210
+        var ph = pdf.internal.pageSize.getHeight();  // 297
+        var iw = pw - 20;  // 内容宽度，左右边距各10mm
+        // 图片在 PDF 中的高度（mm）
+        var ih = canvas.height * iw / canvas.width;
+        // 每页可显示的内容高度
+        var pageH = ph - 20;
+
+        if (ih <= pageH) {
+          // 内容不足一页，直接插入
+          pdf.addImage(imgData, 'PNG', 10, 10, iw, ih);
+        } else {
+          // 超过一页，按内容高度分页
+          // 第1页：图片顶部对齐 y=10
+          pdf.addImage(imgData, 'PNG', 10, 10, iw, ih);
+          // 已显示的内容高度
+          var displayed = pageH;
+          // 计算总共需要几页
+          var totalPages = Math.ceil(ih / pageH);
+          for (var p = 2; p <= totalPages; p++) {
+            // 第 p 页：图片上移 (p-1)*pageH mm，使得第 p 页区域刚好显示在视口中
+            var y = 10 - (p - 1) * pageH;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 10, y, iw, ih);
+            displayed += pageH;
+          }
+        }
+
+        pdf.save('河南美术志愿单_' + new Date().toISOString().slice(0,10) + '.pdf');
+        showToast('PDF导出成功！');
+      } catch(err) {
+        console.error('PDF导出失败:', err);
+        alert('PDF导出失败：' + (err.message || err));
+      }
+    }
+
+    function buildPdfHtml() {
+      var h = '';
+      h += '<div style="padding:30px 35px 20px 35px;">';
+      // 标题
+      h += '<div style="text-align:center;margin-bottom:28px;border-bottom:2px solid #667eea;padding-bottom:18px;">';
+      h += '<div style="font-size:22px;font-weight:bold;color:#667eea;">🎨 河南美术志愿单</div>';
+      if (userScore.cultureScore) {
+        h += '<div style="font-size:13px;color:#666;margin-top:8px;">文化分：' + userScore.cultureScore + ' 分　专业分：' + userScore.majorScore + ' 分　科类：' + (userScore.category||'') + '</div>';
+      }
+      h += '<div style="font-size:12px;color:#999;margin-top:6px;">生成时间：' + new Date().toLocaleString('zh-CN') + '</div>';
+      h += '</div>';
+
+      var sectionNames = { reach:'冲（建议综合分略高于自己）', match:'稳（建议综合分与自己相当）', safe:'保（建议综合分低于自己）' };
+      var sectionColors = { reach:'#d32f2f', match:'#f57c00', safe:'#388e3c' };
+
+      ['reach','match','safe'].forEach(function(type) {
+        var list = volunteerList.filter(function(s){ return s.type === type; });
+        if (list.length === 0) return;
+
+        h += '<div style="margin-bottom:22px;">';
+        h += '<div style="font-size:15px;font-weight:bold;color:' + sectionColors[type] + ';border-left:4px solid ' + sectionColors[type] + ';padding:4px 0 4px 10px;margin-bottom:12px;">' + sectionNames[type] + '（共' + list.length + '个）</div>';
+
+        list.forEach(function(school, idx) {
+          var num = getGlobalIndex(volunteerList, school);
+          h += '<div style="border:1px solid #e0e0e0;border-radius:6px;padding:12px 15px;margin-bottom:10px;">';
+          h += '<div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:14px;font-weight:bold;color:#333;">' + num + '. ' + (school.school_name||'') + '</span>';
+          h += '<span style="font-size:11px;color:white;background:' + sectionColors[type] + ';padding:2px 8px;border-radius:8px;">' + (type==='reach'?'冲':(type==='match'?'稳':'保')) + '</span></div>';
+          h += '<div style="font-size:12px;color:#666;margin:4px 0 6px 0;">专业：' + (school.major||'未知') + '</div>';
+          h += '<div style="font-size:11px;color:#999;display:flex;gap:12px;flex-wrap:wrap;">';
+          h += '<span>📍 ' + (school.province||'未知') + '</span>';
+          h += '<span>📊 最低分：' + (school.min_score!==undefined?school.min_score:'未知') + '</span>';
+          h += '</div>';
+          if (school.userScore !== undefined && school.diff !== undefined) {
+            h += '<div style="margin-top:8px;padding:8px 10px;background:#f8f9fa;border-radius:4px;font-size:11px;line-height:1.8;">';
+            h += '<span style="color:#667eea;font-weight:bold;">我的综合分：' + school.userScore.toFixed(2) + '</span>　';
+            h += '<span>院校最低分：' + school.min_score + '</span><br>';
+            var dc = school.diff >= 0 ? 'color:#4caf50;font-weight:bold;' : 'color:#f44336;font-weight:bold;';
+            h += '<span style="' + dc + '">差距：' + (school.diff>=0?'+':'') + school.diff.toFixed(2) + ' 分</span>';
+            h += '</div>';
+          }
+          h += '</div>';
+        });
+        h += '</div>';
+      });
+
+      h += '<div style="text-align:center;color:#ccc;font-size:11px;margin-top:30px;padding-top:12px;border-top:1px solid #eee;">由「河南美术志愿」生成　—　仅供参考</div>';
+      h += '</div>';
+      return h;
+    }
+  </script>
+  <div class="crafted-by" style="padding-bottom:5px;">Crafted by <span>Nemo</span></div>
+  <div style="text-align:center;font-size:12px;color:#999;letter-spacing:1px;padding:5px 0;user-select:none;pointer-events:none;">抖音ID：<span style="background:linear-gradient(90deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">64477290792</span></div>
+  <div style="text-align:center;font-size:11px;color:#ccc;padding:5px 0;">总访问量 <span id="busuanzi_value_site_pv"></span> 次 🎯</div>
+
+  <!-- 不蒜子访问统计 -->
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+</body>
+</html>
