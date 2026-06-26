@@ -1066,6 +1066,44 @@
     // ========== 结束自定义冲稳保数量 ==========
 
     // ========== 导出PDF（捐赠弹窗） ==========
+
+    // 点击导出按钮 → 显示捐赠弹窗
+    function exportPDF() {
+      document.getElementById('donateModal').classList.add('active');
+    }
+
+    // 关闭捐赠弹窗
+    function closeDonateModal() {
+      document.getElementById('donateModal').classList.remove('active');
+    }
+
+    // 点击"已支持"后导出PDF
+    function confirmExport() {
+      closeDonateModal();
+      showToast('正在生成PDF...');
+
+      try {
+        // 用 window.print 方式导出PDF（兼容iOS Safari，无需第三方库）
+        var printWin = window.open('', '_blank', 'width=800,height=600');
+        if (!printWin) {
+          // 弹窗被拦截时，尝试在当前页打印
+          printPDFInline();
+          return;
+        }
+        printWin.document.write(buildPrintHtml());
+        printWin.document.close();
+        printWin.focus();
+        // 延迟打印以确保内容渲染完成
+        setTimeout(function() { printWin.print(); }, 500);
+        showToast('请在打印对话框中选择「另存为PDF」');
+      } catch(err) {
+        console.error('PDF导出失败:', err);
+        // 降级方案：尝试用html2canvas+jsPDF
+        fallbackExportPDF();
+      }
+    }
+
+    // 降级方案：html2canvas + jsPDF（部分桌面浏览器优先使用）
     // 动态加载 CDN 库
     function loadScript(src) {
       return new Promise(function(resolve, reject) {
@@ -1078,42 +1116,18 @@
       });
     }
 
-    // 点击导出按钮 → 显示捐赠弹窗
-    function exportPDF() {
-      // 加载并显示导出计数
-      var count = parseInt(localStorage.getItem('exportPdfCount') || '0');
-      document.getElementById('exportCountDisplay').textContent = count;
-      document.getElementById('donateModal').classList.add('active');
-    }
-
-    // 关闭捐赠弹窗
-    function closeDonateModal() {
-      document.getElementById('donateModal').classList.remove('active');
-    }
-
-    // 点击"已支持"后真正导出PDF
-    async function confirmExport() {
-      // 递增导出计数并显示
-      var currentCount = parseInt(localStorage.getItem('exportPdfCount') || '0');
-      currentCount++;
-      localStorage.setItem('exportPdfCount', String(currentCount));
-      document.getElementById('exportCountDisplay').textContent = currentCount;
-      closeDonateModal();
-      showToast('正在准备PDF导出...');
-
+    async function fallbackExportPDF() {
       try {
-        // 确保库已加载（页面底部 script 标签可能尚未完成加载）
+        // 动态加载CDN库
         if (typeof html2canvas !== 'function') {
           await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
         }
         if (!window.jspdf) {
           await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
         }
-
         var jsPDF = window.jspdf.jsPDF;
-        if (!jsPDF) { alert('PDF库加载失败，请检查网络连接后重试'); return; }
+        if (!jsPDF) { showToast('PDF导出失败，请使用「打印」功能'); return; }
 
-        // 构建PDF内容（临时DOM）
         var wrap = document.createElement('div');
         wrap.style.cssText = 'position:fixed;top:-99999px;left:0;width:794px;background:white;font-family:Arial,"Microsoft YaHei",sans-serif;color:#333;line-height:1.6;';
         wrap.innerHTML = buildPdfHtml();
@@ -1124,40 +1138,76 @@
 
         var imgData = canvas.toDataURL('image/png');
         var pdf = new jsPDF('p', 'mm', 'a4');
-        var pw = pdf.internal.pageSize.getWidth();   // 210
-        var ph = pdf.internal.pageSize.getHeight();  // 297
-        var iw = pw - 20;  // 内容宽度，左右边距各10mm
-        // 图片在 PDF 中的高度（mm）
+        var pw = pdf.internal.pageSize.getWidth();
+        var ph = pdf.internal.pageSize.getHeight();
+        var iw = pw - 20;
         var ih = canvas.height * iw / canvas.width;
-        // 每页可显示的内容高度
         var pageH = ph - 20;
 
         if (ih <= pageH) {
-          // 内容不足一页，直接插入
           pdf.addImage(imgData, 'PNG', 10, 10, iw, ih);
         } else {
-          // 超过一页，按内容高度分页
-          // 第1页：图片顶部对齐 y=10
           pdf.addImage(imgData, 'PNG', 10, 10, iw, ih);
-          // 已显示的内容高度
-          var displayed = pageH;
-          // 计算总共需要几页
           var totalPages = Math.ceil(ih / pageH);
           for (var p = 2; p <= totalPages; p++) {
-            // 第 p 页：图片上移 (p-1)*pageH mm，使得第 p 页区域刚好显示在视口中
-            var y = 10 - (p - 1) * pageH;
             pdf.addPage();
-            pdf.addImage(imgData, 'PNG', 10, y, iw, ih);
-            displayed += pageH;
+            pdf.addImage(imgData, 'PNG', 10, 10 - (p - 1) * pageH, iw, ih);
           }
         }
-
         pdf.save('河南美术志愿单_' + new Date().toISOString().slice(0,10) + '.pdf');
         showToast('PDF导出成功！');
       } catch(err) {
-        console.error('PDF导出失败:', err);
-        alert('PDF导出失败：' + (err.message || err));
+        console.error('降级导出也失败:', err);
+        // 最后再试一次打印方式
+        printPDFInline();
       }
+    }
+
+    // 在当前页使用打印方式
+    function printPDFInline() {
+      showToast('正在打开打印窗口...');
+      // 在当前页构建打印内容，使用 @media print 样式
+      var printDiv = document.createElement('div');
+      printDiv.id = 'printPdfContent';
+      printDiv.innerHTML = buildPdfHtml();
+      printDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:white;';
+      document.body.appendChild(printDiv);
+      window.print();
+      // 打印结束后移除
+      setTimeout(function() {
+        var el = document.getElementById('printPdfContent');
+        if (el) el.remove();
+      }, 1000);
+    }
+
+    // 构建打印HTML（完整网页，支持打印到PDF）
+    function buildPrintHtml() {
+      var h = '<!DOCTYPE html><html><head><meta charset="UTF-8">';
+      h += '<title>河南美术志愿单</title>';
+      h += '<style>';
+      h += 'body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;padding:30px 35px;color:#333;line-height:1.6;}';
+      h += '.header{text-align:center;border-bottom:2px solid #667eea;padding-bottom:18px;margin-bottom:28px;}';
+      h += '.score-info{font-size:13px;color:#666;margin-top:8px;}';
+      h += '.time{font-size:12px;color:#999;margin-top:6px;}';
+      h += '.section-title{font-size:16px;font-weight:bold;margin:20px 0 12px;}';
+      h += '.section-title.reach{color:#d32f2f;}';
+      h += '.section-title.match{color:#f57c00;}';
+      h += '.section-title.safe{color:#388e3c;}';
+      h += '.item{border:1px solid #e0e0e0;border-radius:6px;padding:12px 15px;margin-bottom:10px;}';
+      h += '.item-header{display:flex;justify-content:space-between;align-items:center;}';
+      h += '.item-num{font-size:14px;font-weight:bold;color:#333;}';
+      h += '.item-tag{font-size:11px;color:white;padding:2px 8px;border-radius:8px;}';
+      h += '.item-major{font-size:12px;color:#666;margin:4px 0 6px;}';
+      h += '.item-meta{font-size:11px;color:#999;display:flex;gap:12px;flex-wrap:wrap;}';
+      h += '.item-score{font-size:11px;margin-top:8px;padding:8px 10px;background:#f8f9fa;border-radius:4px;line-height:1.8;}';
+      h += '.diff-pos{color:#4caf50;font-weight:bold;}';
+      h += '.diff-neg{color:#f44336;font-weight:bold;}';
+      h += '.footer{text-align:center;color:#ccc;font-size:11px;margin-top:30px;padding-top:12px;border-top:1px solid #eee;}';
+      h += '@media print{body{padding:0;} @page{margin:15mm;}}';
+      h += '</style></head><body>';
+      h += buildPdfHtml();
+      h += '</body></html>';
+      return h;
     }
 
     function buildPdfHtml() {
