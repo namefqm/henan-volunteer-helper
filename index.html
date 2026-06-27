@@ -298,6 +298,10 @@
   <script src="static/culture_rank_2025_physics.js"></script>
   <script src="static/culture_rank_2026_history.js"></script>
   <script src="static/culture_rank_2026_physics.js"></script>
+  <!-- 2026招生计划 & 标注 -->
+  <script src="static/plan_2026.js"></script>
+  <script src="static/plan_annotation.js"></script>
+  <script src="static/school_code_map.js"></script>
 
   <!-- 排序所有位次数据（按分数升序，线性插值函数依赖此顺序） -->
   <script>
@@ -864,6 +868,24 @@
           userScore: Math.round(userScoreNum*100)/100,
           diff: Math.round(diff*100)/100
         });
+
+        // 添加2026年招生状态和学费代码信息
+        var planInfo = null;
+        if (typeof PLAN_ANNOTATION !== 'undefined') {
+          planInfo = PLAN_ANNOTATION.find(function(a) {
+            return a[0] === school.school_name && a[1] === school.major && a[2] === school.year;
+          });
+        }
+        if (planInfo) {
+          entry.plan_status = planInfo[3];  // active/stopped/stopped_major
+          entry.school_code = planInfo[4] || '';
+          entry.tuition = planInfo[5] || '';
+        } else {
+          // 兜底：尝试从代码映射取院校代码
+          if (typeof SCHOOL_CODE_MAP !== 'undefined') {
+            entry.school_code = SCHOOL_CODE_MAP[school.school_name] || '';
+          }
+        }
 
         if (diff >= t.safe) results.safe.push(entry);
         else if (diff >= t.match) results.match.push(entry);

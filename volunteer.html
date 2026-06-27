@@ -698,6 +698,13 @@
               '<span>📍 ' + (school.province || '未知') + '</span>' +
               '<span>🏫 ' + (school.level || '未知') + '</span>' +
               '<span>🧮 ' + ruleName + '</span>' +
+              (school.school_code ? '<span>🆔 ' + school.school_code + '</span>' : '') +
+              (school.tuition ? '<span>💰 ' + school.tuition + '元/年</span>' : '') +
+              (school.plan_status ? (
+                school.plan_status === 'stopped' ? '<span style="color:#f44336;">📛 停招</span>' :
+                school.plan_status === 'stopped_major' ? '<span style="color:#ff9800;">⚠️ 该专业停招</span>' :
+                '<span style="color:#4caf50;">✅ 招生中</span>'
+              ) : '') +
             '</div>' +
             diffHtml +
           '</div>' +

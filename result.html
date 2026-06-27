@@ -705,6 +705,10 @@
   
   <script src="static/data.js?v=20250612"></script>
   <script src="static/major_groups.js"></script>
+  <!-- 2026招生计划 -->
+  <script src="static/plan_2026.js"></script>
+  <script src="static/plan_annotation.js"></script>
+  <script src="static/school_code_map.js"></script>
   <script>
     // 动态设置 tabs 的 top 值（根据 header 实际高度）
     function updateTabsTop() {
@@ -1409,6 +1413,13 @@
             <span>📍 ${school.province || '未知'}</span>
             <span>🏫 ${school.level || '未知'}</span>
             <span>🧮 ${getRuleName(school.culture_ratio, school.major_ratio)}</span>
+            ${school.school_code ? '<span>🆔 ' + school.school_code + '</span>' : ''}
+            ${school.tuition ? '<span>💰 ' + school.tuition + '元/年</span>' : ''}
+            ${school.plan_status ? (
+              school.plan_status === 'stopped' ? '<span style="color:#f44336;">📛 停招</span>' :
+              school.plan_status === 'stopped_major' ? '<span style="color:#ff9800;">⚠️ 该专业停招</span>' :
+              '<span style="color:#4caf50;">✅ 招生中</span>'
+            ) : ''}
           </div>
           <div class="score-compare">
             <span class="user-score">你的综合分：${school.userScore.toFixed(2)}</span> |
@@ -1580,6 +1591,9 @@
           min_score: schoolInfo ? schoolInfo.min_score : '',
           userScore: schoolInfo ? schoolInfo.userScore : 0,
           diff: schoolInfo ? schoolInfo.diff : 0,
+          school_code: schoolInfo ? (schoolInfo.school_code || '') : '',
+          tuition: schoolInfo ? (schoolInfo.tuition || '') : '',
+          plan_status: schoolInfo ? (schoolInfo.plan_status || '') : '',
           addedAt: new Date().toISOString()
         });
         localStorage.setItem('volunteerList', JSON.stringify(volunteerList));

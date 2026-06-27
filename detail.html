@@ -169,6 +169,10 @@
   <script src="static/culture_rank_2025_physics.js"></script>
   <script src="static/culture_rank_2026_history.js"></script>
   <script src="static/culture_rank_2026_physics.js"></script>
+  <!-- 2026招生计划 -->
+  <script src="static/plan_2026.js"></script>
+  <script src="static/plan_annotation.js"></script>
+  <script src="static/school_code_map.js"></script>
 
   <!-- 排序所有位次数据 -->
   <script>
@@ -403,6 +407,10 @@
     var metaParts = [];
     if (schoolInfo.province) metaParts.push('📍 ' + schoolInfo.province);
     if (schoolInfo.level) metaParts.push('🏫 ' + schoolInfo.level);
+    // 添加院校代码
+    if (typeof SCHOOL_CODE_MAP !== 'undefined' && SCHOOL_CODE_MAP[schoolInfo.school_name]) {
+      metaParts.push('🆔 ' + SCHOOL_CODE_MAP[schoolInfo.school_name]);
+    }
     document.getElementById('schoolName').innerHTML =
       escapeHtml(schoolInfo.school_name) +
       (metaParts.length ? ' <span class="meta-inline">' + metaParts.join(' ') + '</span>' : '');
@@ -413,8 +421,9 @@
     }
     document.getElementById('subtitle').textContent = subtitleText;
 
-    // 渲染顺序：综合分卡片 → 录取专业大表
+    // 渲染顺序：综合分卡片 → 招生信息卡片 → 录取专业大表
     renderScoreCards();
+    renderPlanInfo();
     renderAdmissionTable();
 
     // ================================================================
@@ -532,6 +541,65 @@
       });
       html += '</div>';
       container.innerHTML = html;
+    }
+
+    // ================================================================
+    //  渲染2026年招生信息
+    // ================================================================
+    function renderPlanInfo() {
+      if (typeof PLAN_2026 === 'undefined' || typeof PLAN_ANNOTATION === 'undefined') return;
+      var container = document.getElementById('scoreCardsContainer');
+      if (!container) return;
+      
+      // 查找该校在2026计划中的信息
+      var planSchool = PLAN_2026.find(function(s) {
+        return s.school_name === schoolInfo.school_name;
+      });
+      
+      if (!planSchool) {
+        // 停招
+        var stopDiv = document.createElement('div');
+        stopDiv.className = 'info-card';
+        stopDiv.innerHTML = '<h3>📋 2026年招生情况</h3>' +
+          '<div style="padding:15px;text-align:center;color:#f44336;font-weight:bold;font-size:14px;">📛 该院校2026年不在河南美术本科批招生</div>';
+        container.parentNode.insertBefore(stopDiv, container.nextSibling);
+        return;
+      }
+      
+      // 该校在2026招生
+      var html = '<div class="info-card"><h3>📋 2026年招生计划</h3>';
+      html += '<div style="font-size:12px;color:#666;line-height:2;">';
+      html += '<div>🆔 院校代码：<b>' + planSchool.school_code + '</b></div>';
+      html += '<div>📊 计划总人数：<b>' + planSchool.total_plan + '</b> 人</div>';
+      
+      // 找当前专业
+      var currentMajor = planSchool.majors.filter(function(m) {
+        return m.major_name === schoolInfo.major;
+      });
+      
+      if (currentMajor.length > 0) {
+        var m = currentMajor[0];
+        html += '<div>📚 专业代码：<b>' + m.major_code + '</b></div>';
+        html += '<div>💰 学费：<b>' + (m.tuition ? m.tuition + ' 元/年' : '待确认') + '</b></div>';
+        html += '<div>👥 计划人数：<b>' + m.plan_count + '</b> 人</div>';
+        if (m.requirement && m.requirement !== '不限') {
+          html += '<div style="color:#e65100;">⚠️ ' + m.requirement + '</div>';
+        }
+        if (m.extra_info) {
+          var clean = m.extra_info.replace(m.tuition ? String(m.tuition) + ' 元/年' : '', '').replace(';', '').trim();
+          if (clean) {
+            html += '<div style="color:#666;">📌 ' + clean + '</div>';
+          }
+        }
+        html += '<div style="margin-top:8px;color:#4caf50;font-weight:bold;">✅ 2026年正在招生</div>';
+      } else {
+        html += '<div style="margin-top:8px;color:#ff9800;font-weight:bold;">⚠️ 该校2026年招生，但「' + schoolInfo.major + '」专业未在招生计划中</div>';
+      }
+      
+      html += '</div></div>';
+      var planDiv = document.createElement('div');
+      planDiv.innerHTML = html;
+      container.parentNode.insertBefore(planDiv, container.nextSibling);
     }
 
     // ================================================================
