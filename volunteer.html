@@ -997,6 +997,12 @@
     // 在PLAN_2026中按校名查找（支持(民办)/(独立学院)后缀匹配）
     function findPlanSchool(schoolName) {
       if (typeof _plan2026() === 'undefined') return null;
+      // 0. 手动映射（Excel与data.js名称差异大的特殊学校）
+      var MAP = { '商丘学院(应用科技学院办学地点在开封)': '商丘学院(应用科技学院,办学地点在开封)(民办)', '郑州轻工业大学(与河南轻工职业学院联办)': '郑州轻工业大学' };
+      if (MAP[schoolName]) {
+        var m = _plan2026().find(function(p) { return p.school_name === MAP[schoolName]; });
+        if (m) return m;
+      }
       var found = _plan2026().find(function(p) { return p.school_name === schoolName; });
       if (found) return found;
       var cleaned = schoolName.replace(/\s*\(民办\)|\s*\(独立学院\)/g, '').trim();
