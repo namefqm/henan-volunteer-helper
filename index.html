@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>河南美术志愿填报助手</title>
   <style>
     * { margin:0; padding:0; box-sizing: border-box; }
@@ -231,9 +234,9 @@
       <div id="missingNotice" class="missing-notice" style="display:none;"></div>
     </div>
 
-    <button class="btn-match" id="btnMatch" disabled>开始匹配院校</button>
+    <div id="thresholdStatus" class="threshold-status" style="margin-bottom:8px;"></div>
     <button class="btn-settings" id="btnSettings" type="button" onclick="openSettingsModal()">⚙️ 自定义冲稳保分数线</button>
-    <div id="thresholdStatus" class="threshold-status"></div>
+    <button class="btn-match" id="btnMatch" disabled>开始匹配院校</button>
 
     <!-- 自定义冲稳保模态框 -->
     <div class="modal-overlay" id="settingsModal">
@@ -289,20 +292,31 @@
   </div>
 
   <!-- 数据文件 -->
-  <script src="static/data.js?v=20250612"></script>
-  <script src="static/data_zk.js"></script>
-  <script src="static/art_rank_data.js"></script>
-  <script src="static/culture_rank_2024_liberal.js"></script>
-  <script src="static/culture_rank_2024_science.js"></script>
-  <script src="static/culture_rank_2025_history.js"></script>
-  <script src="static/culture_rank_2025_physics.js"></script>
-  <script src="static/culture_rank_2026_history.js"></script>
-  <script src="static/culture_rank_2026_physics.js"></script>
-  <!-- 2026招生计划 & 标注 -->
-  <script src="static/plan_2026.js"></script>
-  <script src="static/plan_annotation.js"></script>
-  <script src="static/school_code_map.js"></script>
-
+  <script src="static/data.js?v=20250628"></script>
+  <script src="static/data_zk.js?v=20250628"></script>
+  <script src="static/art_rank_data.js?v=20250628"></script>
+  <script src="static/culture_rank_2024_liberal.js?v=20250628"></script>
+  <script src="static/culture_rank_2024_science.js?v=20250628"></script>
+  <script src="static/culture_rank_2025_history.js?v=20250628"></script>
+  <script src="static/culture_rank_2025_physics.js?v=20250628"></script>
+  <script src="static/culture_rank_2026_history.js?v=20250628"></script>
+  <script src="static/culture_rank_2026_physics.js?v=20250628"></script>
+  <!-- 2026招生计划 & 标注（Excel版） -->
+  <script src="static/plan_2026.js?v=20250628b"></script>
+  <script src="static/plan_annotation.js?v=20250628b"></script>
+  <script src="static/school_code_map.js?v=20250628b"></script>
+  <!-- 2026物理类本科招生计划 -->
+  <script src="static/plan_2026_wl.js?v=20250628"></script>
+  <script src="static/plan_annotation_wl.js?v=20250628"></script>
+  <script src="static/school_code_map_wl.js?v=20250628"></script>
+  <!-- 2026专科招生计划 & 标注 -->
+  <script src="static/plan_2026_zk.js?v=20250628"></script>
+  <script src="static/plan_annotation_zk.js?v=20250628"></script>
+  <script src="static/school_code_map_zk.js?v=20250628"></script>
+  <!-- 2026物理专科招生计划 -->
+  <script src="static/plan_2026_zk_wl.js?v=20250628"></script>
+  <script src="static/plan_annotation_zk_wl.js?v=20250628"></script>
+  <script src="static/school_code_map_zk_wl.js?v=20250628"></script>
   <!-- 排序所有位次数据（按分数升序，线性插值函数依赖此顺序） -->
   <script>
     // 每次打开首页，清空所有历史数据，确保从干净状态开始
@@ -871,8 +885,20 @@
 
         // 添加2026年招生状态和学费代码信息
         var planInfo = null;
-        if (typeof PLAN_ANNOTATION !== 'undefined') {
-          planInfo = PLAN_ANNOTATION.find(function(a) {
+        var isZkMode = currentMode === 'zk';
+        var isWl = (category && (category.indexOf('物理') !== -1 || category.indexOf('理科') !== -1));
+        var planAnn = null;
+        if (isZkMode && isWl && typeof PLAN_ANNOTATION_ZX_WL !== 'undefined') planAnn = PLAN_ANNOTATION_ZX_WL;
+        else if (isZkMode && typeof PLAN_ANNOTATION_ZX !== 'undefined') planAnn = PLAN_ANNOTATION_ZX;
+        else if (!isZkMode && isWl && typeof PLAN_ANNOTATION_WL !== 'undefined') planAnn = PLAN_ANNOTATION_WL;
+        else if (typeof PLAN_ANNOTATION !== 'undefined') planAnn = PLAN_ANNOTATION;
+        var planCodeMap = null;
+        if (isZkMode && isWl && typeof SCHOOL_CODE_MAP_ZX_WL !== 'undefined') planCodeMap = SCHOOL_CODE_MAP_ZX_WL;
+        else if (isZkMode && typeof SCHOOL_CODE_MAP_ZX !== 'undefined') planCodeMap = SCHOOL_CODE_MAP_ZX;
+        else if (!isZkMode && isWl && typeof SCHOOL_CODE_MAP_WL !== 'undefined') planCodeMap = SCHOOL_CODE_MAP_WL;
+        else if (typeof SCHOOL_CODE_MAP !== 'undefined') planCodeMap = SCHOOL_CODE_MAP;
+        if (planAnn) {
+          planInfo = planAnn.find(function(a) {
             return a[0] === school.school_name && a[1] === school.major && a[2] === school.year;
           });
         }
@@ -880,10 +906,13 @@
           entry.plan_status = planInfo[3];  // active/stopped/stopped_major
           entry.school_code = planInfo[4] || '';
           entry.tuition = planInfo[5] || '';
+          entry.tuition_plan = (planInfo[6] != null && planInfo[6] !== '') ? String(planInfo[6]) : '';
+          console.log('【PLAN-MATCH】成功匹配: ' + school.school_name + '/' + school.major + '(' + school.year + ') → 状态:' + entry.plan_status + ' 代码:' + entry.school_code + ' 学费:' + entry.tuition + ' 计划:' + entry.tuition_plan);
         } else {
+          console.warn('【PLAN-MISS】未匹配到计划: ' + school.school_name + '/' + school.major + '(' + school.year + ')');
           // 兜底：尝试从代码映射取院校代码
-          if (typeof SCHOOL_CODE_MAP !== 'undefined') {
-            entry.school_code = SCHOOL_CODE_MAP[school.school_name] || '';
+          if (planCodeMap) {
+            entry.school_code = planCodeMap[school.school_name] || '';
           }
         }
 
@@ -894,7 +923,7 @@
 
       results.reach.sort(function(a,b){ return b.diff - a.diff; });
       results.match.sort(function(a,b){ return b.diff - a.diff; });
-      results.safe.sort(function(a,b){ return b.diff - a.diff; });
+      results.safe.sort(function(a,b){ return a.diff - b.diff; });
       return results;
     }
 

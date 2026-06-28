@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>我的志愿 - 河南美术志愿 v2.4</title>
   <style>
     * { margin:0; padding:0; box-sizing: border-box; }
@@ -149,6 +152,7 @@
     .vol-name { font-size: 15px; font-weight: bold; color: #333; }
     .vol-major { font-size: 13px; color: #666; margin-top: 3px; }
     .vol-meta { font-size: 12px; color: #999; margin-top: 6px; display: flex; gap: 12px; flex-wrap: wrap; }
+    .vol-submeta { font-size: 12px; color: #999; margin-top: 3px; display: flex; gap: 12px; flex-wrap: wrap; }
 
     .btn-remove {
       background: none; border: none; color: #f44336;
@@ -340,6 +344,115 @@
       box-shadow: 0 4px 15px rgba(102,126,234,0.4);
     }
 
+    /* ========== 付费解锁遮罩 ========== */
+    .payment-overlay {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.65); z-index: 5000;
+      align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .payment-overlay.active { display: flex; }
+    .payment-box {
+      background: white; border-radius: 16px; padding: 28px 24px 20px;
+      max-width: 360px; width: 100%; text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      position: relative; max-height: 90vh; overflow-y: auto;
+    }
+    .payment-close {
+      position: absolute; top: 10px; right: 14px;
+      background: none; border: none; font-size: 22px;
+      color: #ccc; cursor: pointer; padding: 4px 8px;
+      line-height: 1; transition: color 0.2s;
+    }
+    .payment-close:hover { color: #666; }
+    .payment-close-back {
+      display: inline-block; margin-top: 14px;
+      background: none; border: none;
+      font-size: 13px; color: #999; cursor: pointer;
+      text-decoration: underline; padding: 6px 12px;
+    }
+    .payment-close-back:hover { color: #667eea; }
+    .payment-box h2 {
+      font-size: 20px; color: #333; margin-bottom: 6px;
+    }
+    .payment-box .sub {
+      font-size: 13px; color: #999; margin-bottom: 16px;
+      line-height: 1.5;
+    }
+    .payment-box .price {
+      font-size: 28px; font-weight: 700; color: #e74c3c;
+      margin-bottom: 16px;
+    }
+    .payment-box .price small { font-size: 14px; font-weight: 400; color: #999; }
+    .payment-qr {
+      width: 220px; max-height: 340px; margin: 0 auto 16px;
+      border: 2px dashed #ddd; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .payment-qr img {
+      width: 100%; height: auto; display: block;
+    }
+    .payment-countdown {
+      font-size: 14px; color: #667eea; font-weight: 600;
+      margin-bottom: 14px;
+    }
+    .payment-countdown .num {
+      font-size: 22px; color: #e74c3c;
+    }
+    .btn-pay-confirm {
+      width: 100%; padding: 14px 0; border: none;
+      border-radius: 10px; font-size: 16px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white; margin-bottom: 12px;
+    }
+    .btn-pay-confirm:disabled {
+      background: #ccc; cursor: not-allowed;
+    }
+    .btn-pay-confirm:not(:disabled):hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(102,126,234,0.4);
+    }
+    .payment-recover {
+      margin-top: 14px; padding-top: 14px;
+      border-top: 1px solid #eee;
+    }
+    .payment-recover summary {
+      font-size: 13px; color: #999; cursor: pointer;
+      outline: none;
+    }
+    .payment-recover input {
+      width: 100%; padding: 10px 12px; border: 1px solid #ddd;
+      border-radius: 8px; font-size: 14px; margin-top: 10px;
+      box-sizing: border-box;
+    }
+    .payment-recover input:focus {
+      border-color: #667eea; outline: none;
+    }
+    .payment-recover .hint {
+      font-size: 11px; color: #bbb; margin-top: 6px;
+      line-height: 1.5;
+    }
+    .btn-recover {
+      width: 100%; padding: 10px; border: none; border-radius: 8px;
+      background: #f0f0f0; color: #666; font-size: 14px;
+      cursor: pointer; margin-top: 8px;
+    }
+    .btn-recover:hover { background: #e0e0e0; }
+    .payment-unlock-code {
+      background: #f8f9fa; border-radius: 8px;
+      padding: 12px; margin: 12px 0; text-align: center;
+    }
+    .payment-unlock-code .code {
+      font-size: 20px; font-weight: 700; letter-spacing: 3px;
+      color: #667eea; font-family: monospace;
+    }
+    .payment-unlock-code .tip {
+      font-size: 11px; color: #999; margin-top: 6px;
+    }
+
     /* 署名 */
     .crafted-by {
       text-align: center;
@@ -433,18 +546,25 @@
     </div>
   </div>
 
-  <!-- 捐赠弹窗 -->
+  <!-- 导出PDF提醒弹窗 -->
   <div class="donate-modal" id="donateModal">
     <div class="donate-modal-box">
-      <div class="donate-modal-title">请老哥喝杯冰阔乐吧 🥤</div>
-      <div class="donate-modal-image">
-        <img src="static/donate.jpg" alt="打赏" onerror="this.alt='感谢打赏!'">
+      <div class="donate-modal-title">📢 使用提醒</div>
+      <div class="donate-modal-desc" style="font-size:14px;color:#e74c3c;font-weight:600;text-align:left;background:#fff5f5;padding:14px;border-radius:10px;line-height:1.8;margin-bottom:16px;">
+        最终志愿单一定要结合<br>
+        <b>本年度《招生考试之友》</b>使用，<br><br>
+        确保以下信息一致：
+        <br>• 院校代码
+        <br>• 专业代码
+        <br>• 招生人数
+        <br>• 学费
       </div>
-      <div class="donate-modal-desc">如果这个工具帮到了你，欢迎打赏支持一下 ~</div>
-      <div class="donate-modal-stats" id="exportStats">📊 已有 <span id="exportCountDisplay">0</span> 人导出PDF</div>
-      <div class="donate-modal-actions">
-        <button class="btn-donate-skip" onclick="closeDonateModal()">下次一定</button>
-        <button class="btn-donate-confirm" onclick="confirmExport()">已支持，导出PDF</button>
+      <div class="donate-modal-desc" style="font-size:13px;color:#888;text-align:left;">
+        💡 本工具数据仅供参考，实际填报请以官方发布的《招生考试之友》为准。
+      </div>
+      <div class="donate-modal-actions" style="margin-top:18px;">
+        <button class="btn-donate-skip" onclick="closeDonateModal()">取消</button>
+        <button class="btn-donate-confirm" onclick="confirmExport()">我知道了，继续导出</button>
       </div>
     </div>
   </div>
@@ -458,15 +578,248 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <!-- 院校数据（向后兼容：补全 level / culture_ratio / major_ratio） -->
-  <script src="static/data.js"></script>
-
+  <script src="static/data.js?v=20250628"></script>
+  <!-- 招生计划数据（Excel版，用于补充显示） -->
+  <script src="static/plan_2026.js?v=20250628b"></script>
+  <script src="static/plan_annotation.js?v=20250628b"></script>
+  <script src="static/school_code_map.js?v=20250628b"></script>
+  <!-- 2026物理类本科招生计划 -->
+  <script src="static/plan_2026_wl.js?v=20250628"></script>
+  <script src="static/plan_annotation_wl.js?v=20250628"></script>
+  <script src="static/school_code_map_wl.js?v=20250628"></script>
+  <!-- 2026专科招生计划 -->
+  <script src="static/plan_2026_zk.js?v=20250628"></script>
+  <script src="static/plan_annotation_zk.js?v=20250628"></script>
+  <script src="static/school_code_map_zk.js?v=20250628"></script>
+  <!-- 2026物理专科招生计划 -->
+  <script src="static/plan_2026_zk_wl.js?v=20250628"></script>
+  <script src="static/plan_annotation_zk_wl.js?v=20250628"></script>
+  <script src="static/school_code_map_zk_wl.js?v=20250628"></script>
   <script>
+    // ========== 模式感知的招生数据访问 ==========
+    function _isZkMode() {
+      try {
+        var us = JSON.parse(localStorage.getItem('userScore') || '{}');
+        return us.mode === 'zk';
+      } catch(e) { return false; }
+    }
+    function _planAnn() {
+      if (!_isZkMode()) {
+        try { var c = (JSON.parse(localStorage.getItem('userScore')||'{}')).category||''; if ((c.indexOf('物理')!==-1||c.indexOf('理科')!==-1) && typeof PLAN_ANNOTATION_WL !== 'undefined') return PLAN_ANNOTATION_WL; } catch(e) {}
+        return PLAN_ANNOTATION;
+      }
+      try { var c = (JSON.parse(localStorage.getItem('userScore')||'{}')).category||''; if (c.indexOf('物理')!==-1||c.indexOf('理科')!==-1) return PLAN_ANNOTATION_ZX_WL; } catch(e) {}
+      return PLAN_ANNOTATION_ZX;
+    }
+    function _plan2026() {
+      if (!_isZkMode()) {
+        try { var c = (JSON.parse(localStorage.getItem('userScore')||'{}')).category||''; if ((c.indexOf('物理')!==-1||c.indexOf('理科')!==-1) && typeof PLAN_2026_WL !== 'undefined') return PLAN_2026_WL; } catch(e) {}
+        return PLAN_2026;
+      }
+      try { var c = (JSON.parse(localStorage.getItem('userScore')||'{}')).category||''; if (c.indexOf('物理')!==-1||c.indexOf('理科')!==-1) return PLAN_2026_ZX_WL; } catch(e) {}
+      return PLAN_2026_ZX;
+    }
+    function _codeMap() {
+      if (!_isZkMode()) {
+        try { var c = (JSON.parse(localStorage.getItem('userScore')||'{}')).category||''; if ((c.indexOf('物理')!==-1||c.indexOf('理科')!==-1) && typeof SCHOOL_CODE_MAP_WL !== 'undefined') return SCHOOL_CODE_MAP_WL; } catch(e) {}
+        return SCHOOL_CODE_MAP;
+      }
+      try { var c = (JSON.parse(localStorage.getItem('userScore')||'{}')).category||''; if (c.indexOf('物理')!==-1||c.indexOf('理科')!==-1) return SCHOOL_CODE_MAP_ZX_WL; } catch(e) {}
+      return SCHOOL_CODE_MAP_ZX;
+    }
+
     // 调试信息
     console.log('=== 志愿单页面加载 ===');
     // 页面加载确认（如果没看到这条，说明页面没加载完）
     document.addEventListener('DOMContentLoaded', function() {
       console.log('✅ DOM 已加载');
+      checkPayment();
     });
+
+    // ========== 付费解锁判断 ==========
+    var PAYMENT_KEY = 'volunteerPayment';
+
+    // 赞助者解锁码（之前打赏过的用户专属，1个月有效期）
+    var SPONSOR_CODES = [
+      'XV7P2Q4R', 'B3K8M9NC', 'W5J6F2TD',
+      'H4G7S1LY', 'N9P3Q8RX', 'C2M5V7BW',
+      'K6J3F8TL', 'R4S7G2HQ', 'A5D9N1CX',
+      'T8M2P5KV', 'L3F6J9YR', 'Q7B4W1HS',
+      'E2N8G3ZU', 'V5R9K6MX', 'P1C4T7DL',
+      'Y6J2F8NA', 'M3S7B5GQ', 'Z8R4K9TW'
+    ];
+
+    function getPaymentInfo() {
+      try { return JSON.parse(localStorage.getItem(PAYMENT_KEY) || '{}'); } catch(e) { return {}; }
+    }
+
+    function isPaid() {
+      var info = getPaymentInfo();
+      if (info.paid !== true) return false;
+      // 检查有效期
+      if (info.paidAt) {
+        var validHours = (info.validDays || 3) * 24;
+        var paidTime = new Date(info.paidAt).getTime();
+        var now = new Date().getTime();
+        var hoursPassed = (now - paidTime) / (1000 * 60 * 60);
+        if (hoursPassed > validHours) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function getRemainingDays() {
+      var info = getPaymentInfo();
+      if (!info.paidAt) return 0;
+      var paidTime = new Date(info.paidAt).getTime();
+      var now = new Date().getTime();
+      var hoursLeft = 72 - (now - paidTime) / (1000 * 60 * 60);
+      return Math.max(0, Math.ceil(hoursLeft));
+    }
+
+    function checkPayment() {
+      // 如果已支付，隐藏遮罩
+      if (isPaid()) {
+        var ov = document.getElementById('paymentOverlay');
+        if (ov) ov.classList.remove('active');
+        return;
+      }
+      // 未支付：显示遮罩 + 启动倒计时
+      var ov = document.getElementById('paymentOverlay');
+      if (ov) ov.classList.add('active');
+      startCountdown();
+    }
+
+    var countdownTimer = null;
+    var countdownValue = 60;
+
+    function startCountdown() {
+      countdownValue = 60;
+      var numEl = document.getElementById('countdownNum');
+      var btnEl = document.getElementById('btnPayConfirm');
+      if (!numEl || !btnEl) return;
+      numEl.textContent = countdownValue;
+      btnEl.disabled = true;
+      if (countdownTimer) clearInterval(countdownTimer);
+      countdownTimer = setInterval(function() {
+        countdownValue--;
+        numEl.textContent = countdownValue;
+        if (countdownValue <= 0) {
+          clearInterval(countdownTimer);
+          countdownTimer = null;
+          btnEl.disabled = false;
+          numEl.textContent = '0';
+        }
+      }, 1000);
+    }
+
+    function confirmPayment() {
+      // 生成解锁码（8位随机字母数字）
+      var code = '';
+      var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      for (var i = 0; i < 8; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      // 保存支付信息
+      var info = {
+        paid: true,
+        unlockCode: code,
+        paidAt: new Date().toISOString(),
+        validDays: 3
+      };
+      localStorage.setItem(PAYMENT_KEY, JSON.stringify(info));
+      // 显示解锁码弹窗
+      showUnlockCode(code);
+    }
+
+    function showUnlockCode(code) {
+      var ov = document.getElementById('paymentOverlay');
+      if (!ov) return;
+      var box = ov.querySelector('.payment-box');
+      if (!box) return;
+      box.innerHTML = '' +
+        '<h2>🎉 解锁成功！</h2>' +
+        '<div class="sub">3天内无限次使用志愿单功能</div>' +
+        '<div class="payment-unlock-code">' +
+        '  <div class="code">' + code + '</div>' +
+        '  <div class="tip">建议截图保存此解锁码，换设备或清除数据后可恢复</div>' +
+        '</div>' +
+        '<div class="sub">⏰ 有效期至：' + (function(){var d=new Date();d.setDate(d.getDate()+3);return d.getMonth()+1+'月'+d.getDate()+'日';})() + '&nbsp;&nbsp;剩余 <span style="color:#e74c3c;font-weight:700;">3</span> 天</div>' +
+        '<button class="btn-pay-confirm" onclick="closePaymentAndReload()" style="margin-bottom:0;">' +
+        '✅ 开始使用' +
+        '</button>';
+    }
+
+    function closePaymentAndReload() {
+      var ov = document.getElementById('paymentOverlay');
+      if (ov) ov.classList.remove('active');
+      window.location.reload();
+    }
+
+    function closePayment() {
+      // 关闭支付遮罩并返回匹配结果页
+      var ov = document.getElementById('paymentOverlay');
+      if (ov) ov.classList.remove('active');
+      window.location.href = 'result.html';
+    }
+
+    function recoverPayment() {
+      var input = document.getElementById('recoverInput');
+      if (!input) return;
+      var code = input.value.trim();
+      if (code.length < 4) {
+        alert('请输入完整的解锁码或支付单号（至少4位）');
+        return;
+      }
+      // 保存支付信息（使用用户输入的内容作为恢复凭证）
+      var info = {
+        paid: true,
+        unlockCode: code,
+        paidAt: new Date().toISOString(),
+        recovered: true
+      };
+      localStorage.setItem(PAYMENT_KEY, JSON.stringify(info));
+      alert('解锁成功！感谢支持 🎉');
+      window.location.reload();
+    }
+
+    function redeemSponsorCode() {
+      var input = document.getElementById('sponsorInput');
+      if (!input) return;
+      var code = input.value.trim().toUpperCase();
+      if (!code) {
+        alert('请输入赞助者解锁码');
+        return;
+      }
+      // 检查是否在有效赞助码列表中
+      if (SPONSOR_CODES.indexOf(code) === -1) {
+        alert('解锁码无效，请联系开发者核实');
+        return;
+      }
+      // 标记该码已使用（用 localstorage 记录已使用的码）
+      var usedCodes = [];
+      try { usedCodes = JSON.parse(localStorage.getItem('usedSponsorCodes') || '[]'); } catch(e) {}
+      if (usedCodes.indexOf(code) !== -1) {
+        alert('该解锁码已被使用');
+        return;
+      }
+      usedCodes.push(code);
+      localStorage.setItem('usedSponsorCodes', JSON.stringify(usedCodes));
+      // 保存1个月有效期的支付信息
+      var info = {
+        paid: true,
+        unlockCode: code,
+        paidAt: new Date().toISOString(),
+        validDays: 30,
+        sponsor: true
+      };
+      localStorage.setItem(PAYMENT_KEY, JSON.stringify(info));
+      alert('🎉 赞助者解锁成功！你已获得 1 个月使用权限，感谢支持！');
+      window.location.reload();
+    }
+
+    // ========== 数据加载 ==========
 
     const DEFAULT_LIMITS = { reach: 13, match: 32, safe: 19 };
     const LIMITS_KEY = 'volunteerLimits';
@@ -641,6 +994,15 @@
       return '其他(culture:' + cultureRatio + ' major:' + majorRatio + ')';
     }
 
+    // 从PLAN_2026中查找专业代码
+    function getMajorCode(schoolName, majorName) {
+      if (typeof _plan2026() === 'undefined') return '';
+      var sch = _plan2026().find(function(s) { return s.school_name === schoolName; });
+      if (!sch) return '';
+      var m = sch.majors.find(function(m) { return m.major_name === majorName; });
+      return m ? m.major_code : '';
+    }
+
     // 渲染单个分区
     function renderSection(type) {
       var list = volunteerList.filter(s => s.type === type);
@@ -688,23 +1050,38 @@
 
         // 计算公式名称
         var ruleName = getRuleName(school.culture_ratio, school.major_ratio);
+        
+        // 查找专业代码
+        var majorCode = getMajorCode(school.school_name, school.major);
+        
+        // 构建plan状态显示文本
+        var planStatusHtml = '';
+        if (school.plan_status) {
+          if (school.plan_status === 'active') {
+            planStatusHtml = '<span style="color:#4caf50;font-weight:600;">【26年招生计划' + (school.tuition_plan || '?') + '人】</span>';
+          } else if (school.plan_status === 'stopped') {
+            planStatusHtml = '<span style="color:#f44336;font-weight:600;">【26年该院校停招】</span>';
+          } else if (school.plan_status === 'stopped_major') {
+            planStatusHtml = '<span style="color:#ff9800;font-weight:600;">【26年该专业停招】</span>';
+          }
+        }
 
         return '<div class="vol-card" data-index="' + realIndex + '" data-section="' + type + '" data-pos="' + idx + '">' +
           '<div class="drag-handle">⋮</div>' +
           '<div class="vol-index ' + cls + '">' + idxDisplay + '</div>' +
           '<div class="vol-info">' +
-            '<div class="vol-name">' + (school.school_name || '未知院校') + ' <span style="font-weight:normal; color:#666;">' + (school.major || '未知专业') + '（' + (school.year || '?') + '年）</span></div>' +
+            '<div class="vol-name">' + (school.school_code ? '（' + school.school_code + '）' : '') + (school.school_name || '未知院校') + ' <span style="font-weight:normal; color:#666;">' + (majorCode ? '(' + majorCode + ')' : '') + (school.major || '未知专业') + '（' + (school.year || '?') + '）</span></div>' +
             '<div class="vol-meta">' +
               '<span>📍 ' + (school.province || '未知') + '</span>' +
               '<span>🏫 ' + (school.level || '未知') + '</span>' +
               '<span>🧮 ' + ruleName + '</span>' +
-              (school.school_code ? '<span>🆔 ' + school.school_code + '</span>' : '') +
               (school.tuition ? '<span>💰 ' + school.tuition + '元/年</span>' : '') +
-              (school.plan_status ? (
-                school.plan_status === 'stopped' ? '<span style="color:#f44336;">📛 停招</span>' :
-                school.plan_status === 'stopped_major' ? '<span style="color:#ff9800;">⚠️ 该专业停招</span>' :
-                '<span style="color:#4caf50;">✅ 招生中</span>'
-              ) : '') +
+              planStatusHtml +
+            '</div>' +
+            '<div class="vol-submeta">' +
+              (school.school_code ? '<span>🆔 院校代码：' + school.school_code + '</span>' : '') +
+              (majorCode ? '<span>📚 专业代码：' + majorCode + '</span>' : '') +
+              (school.tuition_plan ? '<span>👥 计划招生：' + school.tuition_plan + '人</span>' : '') +
             '</div>' +
             diffHtml +
           '</div>' +
@@ -1084,7 +1461,7 @@
       document.getElementById('donateModal').classList.remove('active');
     }
 
-    // 点击"已支持"后导出PDF
+    // 确认提醒后导出PDF
     function confirmExport() {
       closeDonateModal();
       showToast('正在生成PDF...');
@@ -1273,5 +1650,40 @@
 
   <!-- 不蒜子访问统计 -->
   <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  <!-- ========== 付费解锁遮罩 ========== -->
+  <div class="payment-overlay" id="paymentOverlay">
+    <div class="payment-box">
+      <button class="payment-close" onclick="closePayment()">✕</button>
+      <h2>🔓 解锁志愿单功能</h2>
+      <div class="sub">给作者打赏一杯奶茶不过分吧！</div>
+      <div class="payment-qr">
+        <img src="static/donate.jpg" alt="微信赞赏码" onerror="this.alt='请使用微信扫码支付'">
+      </div>
+      <div class="sub">长按识别 / 微信扫码支付后，点击下方按钮解锁</div>
+      <div class="payment-countdown" id="payCountdown">
+        按钮将在 <span class="num" id="countdownNum">60</span> 秒后可用
+      </div>
+      <button class="btn-pay-confirm" id="btnPayConfirm" disabled onclick="confirmPayment()">
+        ✅ 我已支付，立即解锁
+      </button>
+
+      <details class="payment-recover">
+        <summary>💡 已支付过？点击输入解锁码恢复</summary>
+        <input type="text" id="recoverInput" placeholder="输入之前保存的解锁码或微信支付单号" maxlength="50">
+        <div class="hint">解锁码可在首次支付后的弹窗中找到，建议截图保存</div>
+        <button class="btn-recover" onclick="recoverPayment()">恢复解锁</button>
+      </details>
+
+      <details class="payment-recover" style="margin-top:8px;">
+        <summary>🎁 赞助者专属</summary>
+        <input type="text" id="sponsorInput" placeholder="输入赞助者解锁码" maxlength="20">
+        <div class="hint">之前打赏支持过的小伙伴，输入专属解锁码可获 1 个月使用权限</div>
+        <button class="btn-recover" onclick="redeemSponsorCode()">兑换</button>
+      </details>
+
+      <button class="payment-close-back" onclick="closePayment()">← 返回匹配结果页</button>
+    </div>
+  </div>
 </body>
 </html>
