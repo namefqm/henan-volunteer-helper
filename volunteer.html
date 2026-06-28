@@ -994,10 +994,29 @@
       return '其他(culture:' + cultureRatio + ' major:' + majorRatio + ')';
     }
 
+    // 在PLAN_2026中按校名查找（支持(民办)/(独立学院)后缀匹配）
+    function findPlanSchool(schoolName) {
+      if (typeof _plan2026() === 'undefined') return null;
+      var found = _plan2026().find(function(p) { return p.school_name === schoolName; });
+      if (found) return found;
+      var cleaned = schoolName.replace(/\s*\(民办\)|\s*\(独立学院\)/g, '').trim();
+      if (cleaned !== schoolName) {
+        found = _plan2026().find(function(p) { return p.school_name === cleaned; });
+        if (found) return found;
+      }
+      found = _plan2026().find(function(p) { return p.school_name === schoolName + '(民办)'; });
+      if (found) return found;
+      var srcCleaned = schoolName.replace(/\s*\(民办\)|\s*\(独立学院\)/g, '').trim();
+      found = _plan2026().find(function(p) {
+        return p.school_name.replace(/\s*\(民办\)|\s*\(独立学院\)/g, '').trim() === srcCleaned;
+      });
+      return found || null;
+    }
+
     // 从PLAN_2026中查找专业代码
     function getMajorCode(schoolName, majorName) {
       if (typeof _plan2026() === 'undefined') return '';
-      var sch = _plan2026().find(function(s) { return s.school_name === schoolName; });
+      var sch = findPlanSchool(schoolName);
       if (!sch) return '';
       var m = sch.majors.find(function(m) { return m.major_name === majorName; });
       return m ? m.major_code : '';

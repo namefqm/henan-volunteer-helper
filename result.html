@@ -1066,7 +1066,7 @@
         // 2026年计划行（显示该校26年所有招生专业）
         var plan2026Rows = [];
         if (typeof _plan2026() !== 'undefined') {
-          var planSch = _plan2026().find(function(p) { return p.school_name === school.school_name; });
+          var planSch = findPlanSchool(school.school_name);
           if (planSch) {
             planSch.majors.forEach(function(pm) {
               plan2026Rows.push(pm);
@@ -1590,10 +1590,34 @@
       return school;
     }
 
+    // 从 PLAN_2026 查找院校（支持(民办)/(独立学院)后缀匹配）
+    function findPlanSchool(schoolName) {
+      if (typeof _plan2026() === 'undefined') return null;
+      // 1. 精确匹配
+      var found = _plan2026().find(function(p) { return p.school_name === schoolName; });
+      if (found) return found;
+      // 2. 清理(民办)/(独立学院)后缀匹配
+      var cleaned = schoolName.replace(/\s*\(民办\)|\s*\(独立学院\)/g, '').trim();
+      if (cleaned !== schoolName) {
+        found = _plan2026().find(function(p) { return p.school_name === cleaned; });
+        if (found) return found;
+      }
+      // 3. 目标名称加(民办)尝试
+      found = _plan2026().find(function(p) { return p.school_name === schoolName + '(民办)'; });
+      if (found) return found;
+      // 4. 源名称去掉(民办)后匹配目标
+      var srcCleaned = schoolName.replace(/\s*\(民办\)|\s*\(独立学院\)/g, '').trim();
+      found = _plan2026().find(function(p) {
+        var pCleaned = p.school_name.replace(/\s*\(民办\)|\s*\(独立学院\)/g, '').trim();
+        return pCleaned === srcCleaned;
+      });
+      return found || null;
+    }
+
     // 从 PLAN_2026 查找专业代码
     function getMajorCode(schoolName, majorName) {
       if (typeof _plan2026() === 'undefined') return '';
-      var sch = _plan2026().find(function(s) { return s.school_name === schoolName; });
+      var sch = findPlanSchool(schoolName);
       if (!sch) return '';
       var m = sch.majors.find(function(m) { return m.major_name === majorName; });
       return m ? m.major_code : '';

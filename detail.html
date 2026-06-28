@@ -237,6 +237,28 @@
       return SCHOOL_CODE_MAP_ZX;
     }
 
+    // 在 PLAN_2026 中按校名查找（支持(民办)/(独立学院)后缀匹配）
+    function findPlanSchool(schoolName) {
+      if (typeof _plan2026() === 'undefined') return null;
+      var found = _plan2026().find(function(p) { return p.school_name === schoolName; });
+      if (found) return found;
+      // 清理(民办)/(独立学院)后缀重试
+      var cleaned = schoolName.replace(/\s*\(民办\)|\s*\(独立学院\)/g, '').trim();
+      if (cleaned !== schoolName) {
+        found = _plan2026().find(function(p) { return p.school_name === cleaned; });
+        if (found) return found;
+      }
+      // 尝试加(民办)后缀
+      found = _plan2026().find(function(p) { return p.school_name === schoolName + '(民办)'; });
+      if (found) return found;
+      // 双方都清理后比较
+      var srcCleaned = schoolName.replace(/\s*\(民办\)|\s*\(独立学院\)/g, '').trim();
+      found = _plan2026().find(function(p) {
+        return p.school_name.replace(/\s*\(民办\)|\s*\(独立学院\)/g, '').trim() === srcCleaned;
+      });
+      return found || null;
+    }
+
     (function() {
       function s(a) { if(a&&a.length>0) a.sort(function(x,y){return x.score-y.score;}); }
       s(ART_RANK_DATA);
@@ -473,7 +495,7 @@
     var displayTuition = '';
     var planStatusText = '';
     if (typeof _plan2026() !== 'undefined') {
-      var planSch =  _plan2026().find(function(s) { return s.school_name === schoolInfo.school_name; });
+      var planSch =  findPlanSchool(schoolInfo.school_name);
       if (planSch) {
         displaySchoolCode = planSch.school_code;
         var majorMatch = planSch.majors.find(function(m) { return m.major_name === schoolInfo.major; });
@@ -666,9 +688,7 @@
       if (!container) return;
       
       // 查找该校在2026计划中的信息
-      var planSchool =  _plan2026().find(function(s) {
-        return s.school_name === schoolInfo.school_name;
-      });
+      var planSchool = findPlanSchool(schoolInfo.school_name);
       
       if (!planSchool) {
         // 停招
@@ -848,7 +868,7 @@
         // 仅在匹配计划科类的分组下添加2026年计划行
         var plan2026Rows = [];
         if ((group.cat === plan2026Cat) && typeof _plan2026() !== 'undefined') {
-          var planSch =  _plan2026().find(function(p) { return p.school_name === schoolInfo.school_name; });
+          var planSch = findPlanSchool(schoolInfo.school_name);
           if (planSch) {
             // 显示该校26年计划中所有专业（不仅限历史类已有的）
             planSch.majors.forEach(function(pm) {
