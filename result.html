@@ -1273,8 +1273,8 @@
       // 获取所有数据
       const allData = [...allResults.reach, ...allResults.match, ...allResults.safe];
       
-      // 学校地址 - 按照中国省份划分，按拼音 A-Z 排序
-      const provinces = [...new Set(allData.map(s => extractProvince(s.province)).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh-CN'));
+      // 省份 - 固定显示全国所有省份（无论是否有匹配院校）
+      const provinces = Object.keys(PROVINCE_MAP).sort((a, b) => a.localeCompare(b, 'zh-CN'));
       const provinceContainer = document.getElementById('provinceFilters');
       provinceContainer.innerHTML = '';
       provinces.forEach(province => {
