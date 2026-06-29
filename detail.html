@@ -241,7 +241,7 @@
     function findPlanSchool(schoolName) {
       if (typeof _plan2026() === 'undefined') return null;
       // 0. 手动映射（Excel与data.js名称差异大的特殊学校）
-      var MAP = { '商丘学院(应用科技学院办学地点在开封)': '商丘学院(应用科技学院,办学地点在开封)(民办)', '郑州轻工业大学(与河南轻工职业学院联办)': '郑州轻工业大学' };
+      var MAP = { '商丘学院(应用科技学院办学地点在开封)': '商丘学院(应用科技学院,办学地点在开封)(民办)', '郑州轻工业大学(与河南轻工职业学院联办)': '郑州轻工业大学', '闽江学院': '闽江大学(原闽江学院)', '榆林学院': '榆林大学(原榆林学院)', '绍兴文理学院': '绍兴大学(原绍兴文理学院)', '重庆三峡学院': '重庆三峡科技大学(原重庆三峡学院)' };
       if (MAP[schoolName]) {
         var m = _plan2026().find(function(p) { return p.school_name === MAP[schoolName]; });
         if (m) return m;
